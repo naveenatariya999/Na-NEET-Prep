@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { AlertCircle } from 'lucide-react';
 
 type MindMap = {
     id: string;
@@ -36,10 +37,36 @@ function getGoogleDriveImageUrl(url: string): string {
     return url;
 }
 
+function MindMapImage({ src, alt }: { src: string, alt: string }) {
+    const [hasError, setHasError] = React.useState(false);
+
+    if (hasError || !src) {
+        return (
+            <div className="w-full aspect-video object-cover bg-muted flex flex-col items-center justify-center text-center p-4">
+                <AlertCircle className="w-10 h-10 text-muted-foreground mb-2" />
+                <p className="text-sm font-semibold text-muted-foreground">Image could not be loaded.</p>
+                <p className="text-xs text-muted-foreground mt-1">Please check if the URL is correct and the file is shared with "Anyone with the link".</p>
+            </div>
+        );
+    }
+
+    return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src={src}
+            alt={alt}
+            width="600"
+            height="400"
+            className="w-full aspect-video object-cover"
+            onError={() => setHasError(true)}
+        />
+    );
+}
 
 export default function MindMapsPage() {
   const firestore = useFirestore();
   const [viewingMap, setViewingMap] = React.useState<MindMap | null>(null);
+  const [dialogHasError, setDialogHasError] = React.useState(false);
 
   const mindMapsQuery = useMemoFirebase(() => {
     return query(
@@ -55,6 +82,13 @@ export default function MindMapsPage() {
     if (!viewingMap) return '';
     return getGoogleDriveImageUrl(viewingMap.url);
   };
+  
+  React.useEffect(() => {
+    if (viewingMap) {
+        setDialogHasError(false); // Reset error state when a new map is viewed
+    }
+  }, [viewingMap]);
+
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
@@ -76,14 +110,7 @@ export default function MindMapsPage() {
             return (
             <Card key={map.id} className="overflow-hidden group flex flex-col">
                 <CardHeader className="p-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={imageUrl}
-                        alt={map.title}
-                        width="600"
-                        height="400"
-                        className="w-full aspect-video object-cover"
-                    />
+                   <MindMapImage src={imageUrl} alt={map.title} />
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col flex-grow">
                     <Badge variant="secondary" className="mb-2 w-fit">{map.subject}</Badge>
@@ -106,12 +133,21 @@ export default function MindMapsPage() {
           </DialogHeader>
           {viewingMap && (
             <div className="relative flex-grow">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getDialogImageUrl()}
-                alt={viewingMap.title || 'Mind Map'}
-                className="absolute top-0 left-0 w-full h-full object-contain"
-              />
+              {dialogHasError ? (
+                 <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-center p-4">
+                    <AlertCircle className="w-10 h-10 text-muted-foreground mb-2" />
+                    <p className="text-sm font-semibold text-muted-foreground">Image could not be loaded.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Please check if the URL is correct and the file is shared with "Anyone with the link".</p>
+                </div>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                    src={getDialogImageUrl()}
+                    alt={viewingMap.title || 'Mind Map'}
+                    className="absolute top-0 left-0 w-full h-full object-contain"
+                    onError={() => setDialogHasError(true)}
+                />
+              )}
             </div>
           )}
         </DialogContent>
