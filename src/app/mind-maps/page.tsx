@@ -1,10 +1,32 @@
+'use client';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mindMaps } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+type MindMap = {
+    id: string;
+    title: string;
+    subject: string;
+    url: string;
+};
 
 export default function MindMapsPage() {
+  const firestore = useFirestore();
+
+  const mindMapsQuery = useMemoFirebase(() => {
+    return query(
+        collection(firestore, 'study_materials'),
+        where('contentType', '==', 'mindmap'),
+        where('visible', '==', true)
+    );
+  }, [firestore]);
+
+  const { data: mindMaps, isLoading, error } = useCollection<MindMap>(mindMapsQuery);
+
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="text-center mb-12">
@@ -16,30 +38,34 @@ export default function MindMapsPage() {
         </p>
       </div>
 
+      {isLoading && <p className="text-center">Loading mind maps...</p>}
+      {error && <p className="text-center text-destructive">Could not load mind maps.</p>}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {mindMaps.map((map) => {
-          const image = PlaceHolderImages.find(p => p.id === map.imageId);
-          return (
+        {!isLoading && mindMaps?.map((map) => (
             <Card key={map.id} className="overflow-hidden group">
-              <CardHeader className="p-0">
-                {image && (
-                   <Image
-                    src={image.imageUrl}
-                    alt={map.title}
-                    width={600}
-                    height={400}
-                    data-ai-hint={image.imageHint}
-                    className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                )}
-              </CardHeader>
-              <CardContent className="p-6">
-                <Badge variant="secondary" className="mb-2">{map.subject}</Badge>
-                <CardTitle className="text-xl font-headline">{map.title}</CardTitle>
-              </CardContent>
+                <a href={map.url} target="_blank" rel="noopener noreferrer">
+                    <CardHeader className="p-0">
+                        <Image
+                        src={map.url}
+                        alt={map.title}
+                        width={600}
+                        height={400}
+                        className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <Badge variant="secondary" className="mb-2">{map.subject}</Badge>
+                        <CardTitle className="text-xl font-headline">{map.title}</CardTitle>
+                    </CardContent>
+                </a>
             </Card>
-          );
-        })}
+        ))}
+         {!isLoading && mindMaps?.length === 0 && (
+            <div className="col-span-full text-center text-muted-foreground">
+                No mind maps available yet.
+            </div>
+        )}
       </div>
     </div>
   );

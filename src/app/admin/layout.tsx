@@ -13,7 +13,7 @@ import {
   PlaySquare,
   ScrollText,
   Menu,
-  Search,
+  FileText,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/admin/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/admin/notes', icon: BookOpen, label: 'Notes' },
+  { href: '/admin/pdfs', icon: FileText, label: 'PDFs' },
   { href: '/admin/pyqs', icon: ScrollText, label: 'PYQs' },
   { href: '/admin/videos', icon: PlaySquare, label: 'Videos' },
   { href: '/admin/mind-maps', icon: BrainCircuit, label: 'Mind Maps' },

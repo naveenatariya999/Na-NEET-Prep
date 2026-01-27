@@ -8,6 +8,7 @@ import {
   Menu,
   PlaySquare,
   ScrollText,
+  FileText,
 } from 'lucide-react';
 
 import { NaNeetPrepLogo } from '@/components/icons';
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 const navLinks = [
   { href: '/notes', label: 'Notes', icon: BookOpen },
+  { href: '/pdfs', label: 'PDFs', icon: FileText },
   { href: '/pyqs', label: 'PYQs', icon: ScrollText },
   { href: '/videos', label: 'Videos', icon: PlaySquare },
   { href: '/mind-maps', label: 'Mind Maps', icon: BrainCircuit },

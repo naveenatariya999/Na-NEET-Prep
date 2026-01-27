@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Table,
   TableBody,
@@ -8,10 +10,31 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { pyqs } from '@/lib/data';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import Link from 'next/link';
+
+type Pyq = {
+  id: string;
+  title: string;
+  subject: string;
+  url: string;
+};
 
 export default function PYQsPage() {
+  const firestore = useFirestore();
+
+  const pyqsQuery = useMemoFirebase(() => {
+    return query(
+        collection(firestore, 'study_materials'),
+        where('contentType', '==', 'pyq'),
+        where('visible', '==', true)
+    );
+  }, [firestore]);
+
+  const { data: pyqs, isLoading, error } = useCollection<Pyq>(pyqsQuery);
+
+
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="text-center mb-12">
@@ -27,37 +50,36 @@ export default function PYQsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Year</TableHead>
+              <TableHead>Title</TableHead>
               <TableHead>Subject</TableHead>
-              <TableHead>No. of Questions</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pyqs.map((pyq, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{pyq.year}</TableCell>
-                <TableCell>{pyq.subject}</TableCell>
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center">Loading PYQs...</TableCell>
+              </TableRow>
+            )}
+            {error && (
+                <TableRow>
+                    <TableCell colSpan={3} className="text-center text-destructive">Could not load PYQs.</TableCell>
+                </TableRow>
+            )}
+            {!isLoading && pyqs?.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={3} className="text-center">No PYQs available yet.</TableCell>
+                </TableRow>
+            )}
+            {pyqs?.map((pyq) => (
+              <TableRow key={pyq.id}>
+                <TableCell className="font-medium">{pyq.title}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{pyq.questions}</Badge>
-                </TableCell>
-                <TableCell>
-                  {pyq.available ? (
-                    <span className="flex items-center text-green-600">
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Available
-                    </span>
-                  ) : (
-                    <span className="flex items-center text-red-600">
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Unavailable
-                    </span>
-                  )}
+                  <Badge variant="secondary">{pyq.subject}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm" disabled={!pyq.available}>
-                    View Questions
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={pyq.url} target="_blank">View Questions</Link>
                   </Button>
                 </TableCell>
               </TableRow>
