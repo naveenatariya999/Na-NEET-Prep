@@ -50,13 +50,23 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, provider);
       router.push('/admin/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Could not log in with Google. Please try again.',
-      });
+      if (error.code === 'auth/operation-not-allowed') {
+        toast({
+          variant: 'destructive',
+          title: 'Login Method Not Enabled',
+          description:
+            'Google Sign-In must be enabled in the Firebase console. Go to Authentication > Sign-in method to enable it.',
+          duration: 9000,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Could not log in with Google. Please try again.',
+        });
+      }
     }
   };
 
