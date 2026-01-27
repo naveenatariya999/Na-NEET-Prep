@@ -21,6 +21,23 @@ type MindMap = {
     url: string;
 };
 
+/**
+ * Converts a Google Drive sharing URL to a direct image content link.
+ * @param url The original Google Drive sharing URL.
+ * @returns A direct URL to the image content.
+ */
+function getGoogleDriveImageUrl(url: string): string {
+    const fileIdRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+    const fileMatch = url.match(fileIdRegex);
+    if (fileMatch && fileMatch[1]) {
+        return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+    }
+    // If it's not a recognizable Google Drive link, return it as is.
+    // This allows using direct image URLs as well.
+    return url;
+}
+
+
 export default function MindMapsPage() {
   const firestore = useFirestore();
   const [viewingMap, setViewingMap] = React.useState<MindMap | null>(null);
@@ -34,6 +51,11 @@ export default function MindMapsPage() {
   }, [firestore]);
 
   const { data: mindMaps, isLoading, error } = useCollection<MindMap>(mindMapsQuery);
+
+  const getDialogImageUrl = () => {
+    if (!viewingMap) return '';
+    return getGoogleDriveImageUrl(viewingMap.url);
+  };
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
@@ -50,11 +72,13 @@ export default function MindMapsPage() {
       {error && <p className="text-center text-destructive">Could not load mind maps.</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {!isLoading && mindMaps?.map((map) => (
+        {!isLoading && mindMaps?.map((map) => {
+            const imageUrl = getGoogleDriveImageUrl(map.url);
+            return (
             <Card key={map.id} className="overflow-hidden group flex flex-col">
                 <CardHeader className="p-0">
                     <Image
-                    src={map.url}
+                    src={imageUrl}
                     alt={map.title}
                     width={600}
                     height={400}
@@ -67,7 +91,7 @@ export default function MindMapsPage() {
                     <Button onClick={() => setViewingMap(map)} className="mt-4 w-fit">View Full Size</Button>
                 </CardContent>
             </Card>
-        ))}
+        )})}
          {!isLoading && mindMaps?.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground">
                 No mind maps available yet.
@@ -83,7 +107,7 @@ export default function MindMapsPage() {
           {viewingMap && (
             <div className="relative flex-grow">
               <Image
-                src={viewingMap.url}
+                src={getDialogImageUrl()}
                 alt={viewingMap.title}
                 fill
                 className="object-contain"
