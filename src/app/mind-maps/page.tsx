@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -77,12 +76,13 @@ export default function MindMapsPage() {
             return (
             <Card key={map.id} className="overflow-hidden group flex flex-col">
                 <CardHeader className="p-0">
-                    <Image
-                    src={imageUrl}
-                    alt={map.title}
-                    width={600}
-                    height={400}
-                    className="w-full aspect-video object-cover"
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={imageUrl}
+                        alt={map.title}
+                        width="600"
+                        height="400"
+                        className="w-full aspect-video object-cover"
                     />
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col flex-grow">
@@ -106,11 +106,11 @@ export default function MindMapsPage() {
           </DialogHeader>
           {viewingMap && (
             <div className="relative flex-grow">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={getDialogImageUrl()}
-                alt={viewingMap.title}
-                fill
-                className="object-contain"
+                alt={viewingMap.title || 'Mind Map'}
+                className="absolute top-0 left-0 w-full h-full object-contain"
               />
             </div>
           )}
