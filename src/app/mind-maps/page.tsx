@@ -1,11 +1,18 @@
 'use client';
+
+import * as React from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 type MindMap = {
     id: string;
@@ -16,6 +23,7 @@ type MindMap = {
 
 export default function MindMapsPage() {
   const firestore = useFirestore();
+  const [viewingMap, setViewingMap] = React.useState<MindMap | null>(null);
 
   const mindMapsQuery = useMemoFirebase(() => {
     return query(
@@ -43,22 +51,21 @@ export default function MindMapsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {!isLoading && mindMaps?.map((map) => (
-            <Card key={map.id} className="overflow-hidden group">
-                <a href={map.url} target="_blank" rel="noopener noreferrer">
-                    <CardHeader className="p-0">
-                        <Image
-                        src={map.url}
-                        alt={map.title}
-                        width={600}
-                        height={400}
-                        className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                    </CardHeader>
-                    <CardContent className="p-6">
-                        <Badge variant="secondary" className="mb-2">{map.subject}</Badge>
-                        <CardTitle className="text-xl font-headline">{map.title}</CardTitle>
-                    </CardContent>
-                </a>
+            <Card key={map.id} className="overflow-hidden group flex flex-col">
+                <CardHeader className="p-0">
+                    <Image
+                    src={map.url}
+                    alt={map.title}
+                    width={600}
+                    height={400}
+                    className="w-full aspect-video object-cover"
+                    />
+                </CardHeader>
+                <CardContent className="p-6 flex flex-col flex-grow">
+                    <Badge variant="secondary" className="mb-2 w-fit">{map.subject}</Badge>
+                    <CardTitle className="text-xl font-headline mb-auto">{map.title}</CardTitle>
+                    <Button onClick={() => setViewingMap(map)} className="mt-4 w-fit">View Full Size</Button>
+                </CardContent>
             </Card>
         ))}
          {!isLoading && mindMaps?.length === 0 && (
@@ -67,6 +74,24 @@ export default function MindMapsPage() {
             </div>
         )}
       </div>
+
+      <Dialog open={!!viewingMap} onOpenChange={(isOpen) => !isOpen && setViewingMap(null)}>
+        <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-2 sm:p-6">
+          <DialogHeader>
+            <DialogTitle>{viewingMap?.title}</DialogTitle>
+          </DialogHeader>
+          {viewingMap && (
+            <div className="relative flex-grow">
+              <Image
+                src={viewingMap.url}
+                alt={viewingMap.title}
+                fill
+                className="object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
