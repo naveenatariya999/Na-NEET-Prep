@@ -37,15 +37,13 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCollection, useFirestore, useUser, useMemoFirebase, useFirebaseApp } from '@/firebase';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { subjects } from '@/lib/data';
-import { Progress } from '@/components/ui/progress';
 
 type Pdf = {
   id: string;
@@ -62,92 +60,47 @@ function AddPdfDialog({ onPdfAdded }: { onPdfAdded: () => void }) {
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState('');
   const [subject, setSubject] = React.useState('');
-  const [file, setFile] = React.useState<File | null>(null);
-  const [isUploading, setIsUploading] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState(0);
-  
+  const [url, setUrl] = React.useState('');
   const firestore = useFirestore();
-  const app = useFirebaseApp();
   const { user } = useUser();
   const { toast } = useToast();
 
-  const handleSubmit = () => {
-    if (!title || !subject || !file || !user) {
+  const handleSubmit = async () => {
+    if (!title || !subject || !url || !user) {
       toast({
         variant: 'destructive',
         title: 'Missing fields',
-        description: 'Please fill out title, subject, and select a file.',
+        description: 'Please fill out all fields.',
       });
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    const newPdf = {
+      title,
+      subject,
+      url,
+      contentType: 'pdf',
+      visible: true,
+      adminId: user.uid,
+      createdAt: serverTimestamp(),
+    };
 
-    const storage = getStorage(app);
-    const storageRef = ref(storage, `pdfs/${user.uid}/${Date.now()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    addDocumentNonBlocking(collection(firestore, 'study_materials'), newPdf);
+    
+    toast({
+      title: 'PDF Added',
+      description: `${title} has been added successfully.`,
+    });
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: "Could not upload the PDF. Please try again.",
-        });
-        setIsUploading(false);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          const newPdf = {
-            title,
-            subject,
-            url: downloadURL,
-            contentType: 'pdf',
-            visible: true,
-            adminId: user.uid,
-            createdAt: serverTimestamp(),
-            fileName: file.name,
-          };
-
-          addDocumentNonBlocking(collection(firestore, 'study_materials'), newPdf);
-          
-          toast({
-            title: 'PDF Uploaded',
-            description: `${title} has been uploaded successfully.`,
-          });
-
-          onPdfAdded();
-          setOpen(false);
-          setTitle('');
-          setSubject('');
-          setFile(null);
-        } catch (error) {
-           console.error("Failed to process upload:", error);
-           toast({
-             variant: "destructive",
-             title: "Error",
-             description: "An error occurred after upload. Please try again.",
-           });
-        } finally {
-            setIsUploading(false);
-        }
-      }
-    );
+    onPdfAdded();
+    setOpen(false);
+    setTitle('');
+    setSubject('');
+    setUrl('');
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (isUploading) return; // Prevent closing while uploading
-      setOpen(isOpen);
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="h-8 gap-1">
           <PlusCircle className="h-3.5 w-3.5" />
@@ -160,7 +113,7 @@ function AddPdfDialog({ onPdfAdded }: { onPdfAdded: () => void }) {
         <DialogHeader>
           <DialogTitle>Add New PDF</DialogTitle>
           <DialogDescription>
-            Fill in the details and upload the PDF file. Click save when you're done.
+            Fill in the details for the new PDF. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -173,14 +126,13 @@ function AddPdfDialog({ onPdfAdded }: { onPdfAdded: () => void }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="col-span-3"
-              disabled={isUploading}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="subject" className="text-right">
               Subject
             </Label>
-             <Select onValueChange={setSubject} value={subject} disabled={isUploading}>
+             <Select onValueChange={setSubject} value={subject}>
                 <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a subject" />
                 </SelectTrigger>
@@ -192,29 +144,20 @@ function AddPdfDialog({ onPdfAdded }: { onPdfAdded: () => void }) {
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="file" className="text-right">
-              File
+            <Label htmlFor="url" className="text-right">
+              URL
             </Label>
             <Input
-              id="file"
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              id="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               className="col-span-3"
-              accept=".pdf"
-              disabled={isUploading}
+              placeholder="e.g., Google Drive link"
             />
           </div>
-          {isUploading && (
-             <div className="col-span-4 px-1">
-                <Progress value={uploadProgress} className="w-full" />
-                <p className="text-sm text-center mt-2 text-muted-foreground">Uploading... {Math.round(uploadProgress)}%</p>
-             </div>
-          )}
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={isUploading}>
-            {isUploading ? 'Uploading...' : 'Save PDF'}
-          </Button>
+          <Button onClick={handleSubmit}>Save PDF</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -230,7 +173,7 @@ export default function AdminPdfsPage() {
     return query(collection(firestore, 'study_materials'), where('contentType', '==', 'pdf'));
   }, [firestore]);
 
-  const { data: pdfs, isLoading, error, forceRefresh } = useCollection<Pdf>(pdfsQuery);
+  const { data: pdfs, isLoading, error } = useCollection<Pdf>(pdfsQuery);
 
   const handleVisibilityChange = (pdfId: string, newVisibility: boolean) => {
     const pdfRef = doc(firestore, 'study_materials', pdfId);
@@ -239,7 +182,6 @@ export default function AdminPdfsPage() {
 
   const handleDelete = (pdfId: string) => {
     const pdfRef = doc(firestore, 'study_materials', pdfId);
-    // TODO: Also delete file from storage
     deleteDocumentNonBlocking(pdfRef);
     toast({
       title: 'PDF Deleted',
@@ -252,14 +194,14 @@ export default function AdminPdfsPage() {
        <div className="flex items-center">
           <h1 className="text-lg font-semibold md:text-2xl font-headline">PDFs</h1>
           <div className="ml-auto flex items-center gap-2">
-            <AddPdfDialog onPdfAdded={() => { if (forceRefresh) forceRefresh() }} />
+            <AddPdfDialog onPdfAdded={() => {}} />
           </div>
         </div>
       <Card>
         <CardHeader>
           <CardTitle>Content Management</CardTitle>
           <CardDescription>
-            Manage your PDF documents. You can upload, toggle visibility, or delete them.
+            Manage your PDF documents. You can add links, toggle visibility, or delete them.
           </CardDescription>
         </CardHeader>
         <CardContent>
