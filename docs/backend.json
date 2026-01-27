@@ -1,0 +1,154 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application, either a student or an administrator.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., 'student', 'admin')."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "StudyMaterial": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StudyMaterial",
+      "type": "object",
+      "description": "Represents a piece of study material, such as notes, PYQs, or videos.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the study material."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the study material."
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of the study material."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Type of content (e.g., 'notes', 'pyq', 'video', 'mindmap')."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject of the study material (e.g., 'physics', 'chemistry', 'biology')."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL of the study material (e.g., link to PDF, YouTube video ID).",
+          "format": "uri"
+        },
+        "adminId": {
+          "type": "string",
+          "description": "Reference to the Admin who uploaded the material. (Relationship: Admin 1:N StudyMaterial)"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "contentType",
+        "subject",
+        "url",
+        "adminId"
+      ]
+    },
+    "Admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an administrator of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the admin entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User. (Relationship: User 1:1 Admin)"
+        }
+      },
+      "required": [
+        "id",
+        "userId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data. Used for authentication and authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/admins/{adminId}",
+        "definition": {
+          "entityName": "Admin",
+          "schema": {
+            "$ref": "#/backend/entities/Admin"
+          },
+          "description": "Stores admin user id. Admin has rights to modify study materials. Includes a reference to the User collection.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique ID of the admin, which matches the user ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/study_materials/{studyMaterialId}",
+        "definition": {
+          "entityName": "StudyMaterial",
+          "schema": {
+            "$ref": "#/backend/entities/StudyMaterial"
+          },
+          "description": "Stores study material data including title, content type, subject, URL, and the admin who uploaded it (adminId). Includes denormalized 'adminId' for authorization independence.",
+          "params": [
+            {
+              "name": "studyMaterialId",
+              "description": "The unique ID of the study material."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and support secure list operations (QAPs). It separates student and admin data, enables PDF uploads, and ensures students cannot modify content. Admins manage all study materials. The key to Authorization Independence is the denormalization of the `adminId` in the `study_materials` collection. This eliminates the need for `get()` calls in the security rules to verify admin privileges. Segregation is achieved by storing all study materials in a single `study_materials` collection with the `adminId` field facilitating admin-specific access control.\n\n**Authorization Independence:** The `study_materials` documents include the `adminId`, denormalizing the admin's ID directly into each study material document. This allows rules to validate if the requesting user (admin) matches the `adminId` without needing to perform a `get()` operation on a parent `admins` document.\n\n**QAPs:** Listing operations are secured by enforcing that only admins with a matching `adminId` can list study materials. This prevents unauthorized access to the entire collection by non-admin users. The structure supports the integrity of the `adminId` ownership through security rules that validate this field during create, update, and delete operations."
+  }
+}

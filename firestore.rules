@@ -1,0 +1,163 @@
+/**
+ * Core Philosophy:
+ * This ruleset implements a Role-Based Access Control (RBAC) model. The system
+ * distinguishes between 'student' and 'admin' roles. All study materials are
+ * publicly readable by anyone (including students and unauthenticated users) to
+ * ensure easy access to learning content. However, all write operations (creating,
+ * editing, deleting content) are strictly reserved for users designated as 'admins'.
+ * User profiles are kept private and are only accessible by their owners.
+ *
+ * Data Structure:
+ * The data is organized into three top-level collections:
+ * - /users/{userId}: Stores private user profile information.
+ * - /admins/{adminId}: An allow-list of user UIDs that have admin privileges. This
+ *   collection is not client-readable and is used internally by rules.
+ * - /study_materials/{studyMaterialId}: Contains all public study content.
+ *
+ * Key Security Decisions:
+ * - Public Read, Admin Write: Study materials are globally readable to minimize
+ *   access friction for students, but write access is locked down to admins.
+ * - Server-Side Admin Management: The /admins collection is intentionally made
+ *   inaccessible to clients. Promoting a user to an admin is a privileged
+ *   operation that must be performed through a trusted server environment (e.g.,
+ *   Cloud Function or manual console edit) to prevent unauthorized escalation.
+ * - Strict User Data Privacy: A user's document in the /users collection can only
+ *   be accessed or modified by that specific user. User listing is disabled.
+ *
+ * Denormalization for Authorization:
+ * To ensure fast and secure authorization, the `adminId` (the UID of the admin who
+ * created the content) is denormalized directly onto each document in the
+ * `/study_materials` collection. This allows update and delete rules to instantly
+ * verify ownership (`request.auth.uid == resource.data.adminId`) without needing
+ * slow and costly `get()` calls to other collections. The `/admins` collection
+ * itself serves as a central point for a fast `exists()` check to verify a user's
+ * admin role for any create operation.
+ *
+ * Structural Segregation:
+ * This ruleset uses a single public `/study_materials` collection governed by
+ * roles rather than separating content into different collections. This is suitable
+ * because all study material is intended to be public, and the authorization logic
+ * is based on the user's role (admin) rather than the content's state (e.g., draft
+ * vs. published).
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the fundamental check for data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the requesting user is an administrator.
+     * This is done by checking for the existence of their UID as a document
+     * in the /admins collection. This is secure and performant.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    /**
+     * Validates that the creatorId of a new document matches the authenticated user.
+     * This ensures that users cannot create documents on behalf of others.
+     */
+    function isCreatingOwnUserDoc(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that the adminId of a new study material document
+     * matches the authenticated admin's user ID.
+     */
+    function isCreatingOwnMaterial() {
+      return request.resource.data.adminId == request.auth.uid;
+    }
+
+    /**
+     * Validates that critical, immutable fields are not changed during an update.
+     * Protects relational integrity and ownership.
+     */
+    function userFieldsAreImmutable() {
+      return request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role;
+    }
+    
+    /**
+     * Validates that the ownership of a study material cannot be changed.
+     */
+    function materialOwnershipIsImmutable() {
+        return request.resource.data.adminId == resource.data.adminId;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Users can create and manage their own profile document. They cannot
+     *              see or edit anyone else's profile. Listing all users is forbidden.
+     * @path /users/{userId}
+     * @allow (create) A new user signs up and creates their own user document. auth.uid = 'user_abc', path = /users/user_abc.
+     * @deny (get) A user tries to read another user's profile. auth.uid = 'user_abc', path = /users/user_xyz.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Prevent listing all users for security.
+      allow create: if isOwner(userId) && isCreatingOwnUserDoc(userId);
+      allow update: if isOwner(userId) && resource != null && userFieldsAreImmutable();
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description The admins collection is a server-managed list of admin UIDs.
+     *              No client, regardless of role, can read or write to this collection.
+     *              This prevents users from seeing who the admins are or from trying
+     *              to promote themselves. The `isAdmin()` function works without this permission.
+     * @path /admins/{adminId}
+     * @allow (none) No operation is permitted from the client-side.
+     * @deny (get) An admin tries to read the admin document. auth.uid = 'admin_abc', path = /admins/admin_abc.
+     * @principle Enforces server-side management for critical role assignments.
+     */
+    match /admins/{adminId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Study materials are public for anyone to read. Only authenticated
+     *              admins can create new materials. Only the original admin who
+     *              created a material can update or delete it.
+     * @path /study_materials/{studyMaterialId}
+     * @allow (list) An unauthenticated student browses the list of available study materials.
+     * @allow (create) An admin uploads a new PDF. auth.uid is in /admins collection.
+     * @deny (update) A student tries to edit the description of a study material.
+     * @deny (delete) An admin tries to delete a material created by another admin.
+     * @principle Implements public read access with role-based write and ownership-based edit/delete controls.
+     */
+    match /study_materials/{studyMaterialId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isCreatingOwnMaterial();
+      allow update: if isAdmin() && resource != null && request.auth.uid == resource.data.adminId && materialOwnershipIsImmutable();
+      allow delete: if isAdmin() && resource != null && request.auth.uid == resource.data.adminId;
+    }
+  }
+}
