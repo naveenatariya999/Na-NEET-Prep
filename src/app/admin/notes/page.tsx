@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
@@ -205,62 +205,110 @@ export default function AdminNotesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading notes...</TableCell></TableRow>}
-              {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
-              {!isLoading && notes?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No notes found.</TableCell></TableRow>}
-              {notes?.map((note) => (
-                <TableRow key={note.id}>
-                  <TableCell className="font-medium">{note.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{note.subject}</Badge>
-                  </TableCell>
-                  <TableCell>{note.createdAt ? note.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={note.visible}
-                      onCheckedChange={(checked) => handleVisibilityChange(note.id, checked)}
-                      aria-label="Toggle note visibility"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => window.open(note.url, '_blank')}>View</DropdownMenuItem>
-                        <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onSelect={() => handleDelete(note.id)}
-                            className="text-destructive"
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+           {/* Desktop View */}
+           <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Visibility</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading notes...</TableCell></TableRow>}
+                {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+                {!isLoading && notes?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No notes found.</TableCell></TableRow>}
+                {notes?.map((note) => (
+                  <TableRow key={note.id}>
+                    <TableCell className="font-medium">{note.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{note.subject}</Badge>
+                    </TableCell>
+                    <TableCell>{note.createdAt ? note.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={note.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(note.id, checked)}
+                        aria-label="Toggle note visibility"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => window.open(note.url, '_blank')}>View</DropdownMenuItem>
+                          <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                              onSelect={() => handleDelete(note.id)}
+                              className="text-destructive"
+                          >
+                              Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+           </div>
+            {/* Mobile View */}
+            <div className="grid gap-4 md:hidden">
+              {isLoading && <p className="text-center">Loading notes...</p>}
+              {error && <p className="text-center text-destructive">Error: {error.message}</p>}
+              {!isLoading && notes?.length === 0 && <p className="text-center">No notes found.</p>}
+              {notes?.map((note) => (
+                <Card key={note.id} className="w-full">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                      <div>
+                        <CardTitle className="text-lg leading-tight">{note.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground pt-1">{note.createdAt ? note.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DropdownMenuItem onSelect={() => window.open(note.url, '_blank')}>View</DropdownMenuItem>
+                           <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => handleDelete(note.id)} className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                  </CardHeader>
+                  <CardContent>
+                      <Badge variant="outline">{note.subject}</Badge>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between">
+                      <Label htmlFor={`visible-${note.id}`} className="text-sm text-muted-foreground">Visible</Label>
+                      <Switch
+                        id={`visible-${note.id}`}
+                        checked={note.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(note.id, checked)}
+                        aria-label="Toggle note visibility"
+                      />
+                  </CardFooter>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
         </CardContent>
       </Card>
     </main>

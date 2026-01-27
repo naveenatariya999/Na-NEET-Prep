@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
@@ -205,62 +205,110 @@ export default function AdminPdfsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading PDFs...</TableCell></TableRow>}
-              {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
-              {!isLoading && pdfs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No PDFs found.</TableCell></TableRow>}
-              {pdfs?.map((pdf) => (
-                <TableRow key={pdf.id}>
-                  <TableCell className="font-medium">{pdf.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{pdf.subject}</Badge>
-                  </TableCell>
-                  <TableCell>{pdf.createdAt ? pdf.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={pdf.visible}
-                      onCheckedChange={(checked) => handleVisibilityChange(pdf.id, checked)}
-                      aria-label="Toggle PDF visibility"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => window.open(pdf.url, '_blank')}>View</DropdownMenuItem>
-                        <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onSelect={() => handleDelete(pdf.id)}
-                            className="text-destructive"
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Desktop View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Visibility</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading PDFs...</TableCell></TableRow>}
+                {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+                {!isLoading && pdfs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No PDFs found.</TableCell></TableRow>}
+                {pdfs?.map((pdf) => (
+                  <TableRow key={pdf.id}>
+                    <TableCell className="font-medium">{pdf.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{pdf.subject}</Badge>
+                    </TableCell>
+                    <TableCell>{pdf.createdAt ? pdf.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={pdf.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(pdf.id, checked)}
+                        aria-label="Toggle PDF visibility"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => window.open(pdf.url, '_blank')}>View</DropdownMenuItem>
+                          <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                              onSelect={() => handleDelete(pdf.id)}
+                              className="text-destructive"
+                          >
+                              Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile View */}
+          <div className="grid gap-4 md:hidden">
+              {isLoading && <p className="text-center">Loading PDFs...</p>}
+              {error && <p className="text-center text-destructive">Error: {error.message}</p>}
+              {!isLoading && pdfs?.length === 0 && <p className="text-center">No PDFs found.</p>}
+              {pdfs?.map((pdf) => (
+                <Card key={pdf.id} className="w-full">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                      <div>
+                        <CardTitle className="text-lg leading-tight">{pdf.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground pt-1">{pdf.createdAt ? pdf.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DropdownMenuItem onSelect={() => window.open(pdf.url, '_blank')}>View</DropdownMenuItem>
+                           <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => handleDelete(pdf.id)} className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                  </CardHeader>
+                  <CardContent>
+                      <Badge variant="outline">{pdf.subject}</Badge>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between">
+                      <Label htmlFor={`visible-${pdf.id}`} className="text-sm text-muted-foreground">Visible</Label>
+                      <Switch
+                        id={`visible-${pdf.id}`}
+                        checked={pdf.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(pdf.id, checked)}
+                        aria-label="Toggle PDF visibility"
+                      />
+                  </CardFooter>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
         </CardContent>
       </Card>
     </main>

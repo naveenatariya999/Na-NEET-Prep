@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
@@ -206,62 +206,110 @@ export default function AdminPyqsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading PYQs...</TableCell></TableRow>}
-              {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
-              {!isLoading && pyqs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No PYQs found.</TableCell></TableRow>}
-              {pyqs?.map((pyq) => (
-                <TableRow key={pyq.id}>
-                  <TableCell className="font-medium">{pyq.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{pyq.subject}</Badge>
-                  </TableCell>
-                  <TableCell>{pyq.createdAt ? pyq.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={pyq.visible}
-                      onCheckedChange={(checked) => handleVisibilityChange(pyq.id, checked)}
-                      aria-label="Toggle PYQ visibility"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => window.open(pyq.url, '_blank')}>View</DropdownMenuItem>
-                        <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onSelect={() => handleDelete(pyq.id)}
-                            className="text-destructive"
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Desktop View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Visibility</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading PYQs...</TableCell></TableRow>}
+                {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+                {!isLoading && pyqs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No PYQs found.</TableCell></TableRow>}
+                {pyqs?.map((pyq) => (
+                  <TableRow key={pyq.id}>
+                    <TableCell className="font-medium">{pyq.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{pyq.subject}</Badge>
+                    </TableCell>
+                    <TableCell>{pyq.createdAt ? pyq.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={pyq.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(pyq.id, checked)}
+                        aria-label="Toggle PYQ visibility"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => window.open(pyq.url, '_blank')}>View</DropdownMenuItem>
+                          <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                              onSelect={() => handleDelete(pyq.id)}
+                              className="text-destructive"
+                          >
+                              Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile View */}
+          <div className="grid gap-4 md:hidden">
+              {isLoading && <p className="text-center">Loading PYQs...</p>}
+              {error && <p className="text-center text-destructive">Error: {error.message}</p>}
+              {!isLoading && pyqs?.length === 0 && <p className="text-center">No PYQs found.</p>}
+              {pyqs?.map((pyq) => (
+                <Card key={pyq.id} className="w-full">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                      <div>
+                        <CardTitle className="text-lg leading-tight">{pyq.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground pt-1">{pyq.createdAt ? pyq.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DropdownMenuItem onSelect={() => window.open(pyq.url, '_blank')}>View</DropdownMenuItem>
+                           <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => handleDelete(pyq.id)} className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                  </CardHeader>
+                  <CardContent>
+                      <Badge variant="outline">{pyq.subject}</Badge>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between">
+                      <Label htmlFor={`visible-${pyq.id}`} className="text-sm text-muted-foreground">Visible</Label>
+                      <Switch
+                        id={`visible-${pyq.id}`}
+                        checked={pyq.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(pyq.id, checked)}
+                        aria-label="Toggle PYQ visibility"
+                      />
+                  </CardFooter>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
         </CardContent>
       </Card>
     </main>

@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
@@ -205,62 +205,110 @@ export default function AdminMindMapsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading mind maps...</TableCell></TableRow>}
-              {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
-              {!isLoading && mindMaps?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No mind maps found.</TableCell></TableRow>}
-              {mindMaps?.map((mindMap) => (
-                <TableRow key={mindMap.id}>
-                  <TableCell className="font-medium">{mindMap.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{mindMap.subject}</Badge>
-                  </TableCell>
-                  <TableCell>{mindMap.createdAt ? mindMap.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={mindMap.visible}
-                      onCheckedChange={(checked) => handleVisibilityChange(mindMap.id, checked)}
-                      aria-label="Toggle mind map visibility"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => window.open(mindMap.url, '_blank')}>View</DropdownMenuItem>
-                        <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onSelect={() => handleDelete(mindMap.id)}
-                            className="text-destructive"
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Desktop View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Visibility</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading mind maps...</TableCell></TableRow>}
+                {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+                {!isLoading && mindMaps?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No mind maps found.</TableCell></TableRow>}
+                {mindMaps?.map((mindMap) => (
+                  <TableRow key={mindMap.id}>
+                    <TableCell className="font-medium">{mindMap.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{mindMap.subject}</Badge>
+                    </TableCell>
+                    <TableCell>{mindMap.createdAt ? mindMap.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={mindMap.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(mindMap.id, checked)}
+                        aria-label="Toggle mind map visibility"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => window.open(mindMap.url, '_blank')}>View</DropdownMenuItem>
+                          <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                              onSelect={() => handleDelete(mindMap.id)}
+                              className="text-destructive"
+                          >
+                              Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile View */}
+          <div className="grid gap-4 md:hidden">
+              {isLoading && <p className="text-center">Loading mind maps...</p>}
+              {error && <p className="text-center text-destructive">Error: {error.message}</p>}
+              {!isLoading && mindMaps?.length === 0 && <p className="text-center">No mind maps found.</p>}
+              {mindMaps?.map((mindMap) => (
+                <Card key={mindMap.id} className="w-full">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                      <div>
+                        <CardTitle className="text-lg leading-tight">{mindMap.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground pt-1">{mindMap.createdAt ? mindMap.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DropdownMenuItem onSelect={() => window.open(mindMap.url, '_blank')}>View</DropdownMenuItem>
+                           <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => handleDelete(mindMap.id)} className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                  </CardHeader>
+                  <CardContent>
+                      <Badge variant="outline">{mindMap.subject}</Badge>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between">
+                      <Label htmlFor={`visible-${mindMap.id}`} className="text-sm text-muted-foreground">Visible</Label>
+                      <Switch
+                        id={`visible-${mindMap.id}`}
+                        checked={mindMap.visible}
+                        onCheckedChange={(checked) => handleVisibilityChange(mindMap.id, checked)}
+                        aria-label="Toggle mind map visibility"
+                      />
+                  </CardFooter>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
         </CardContent>
       </Card>
     </main>
