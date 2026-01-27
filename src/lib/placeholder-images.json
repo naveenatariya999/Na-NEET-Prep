@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "home-hero",
+      "description": "A focused medical student studying with books and a laptop.",
+      "imageUrl": "https://images.unsplash.com/photo-1605176173609-a0067079b419?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtZWRpY2FsJTIwc3R1ZGVudHxlbnwwfHx8fDE3Njk0OTk2NTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical student"
+    },
+    {
+      "id": "feature-notes",
+      "description": "A close-up of organized, highlighted study notes.",
+      "imageUrl": "https://images.unsplash.com/photo-1712812824597-1781d19a2acb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdHVkeSUyMG5vdGVzfGVufDB8fHx8MTc2OTUxNjIxNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "study notes"
+    },
+    {
+      "id": "feature-pyqs",
+      "description": "An old exam paper with questions.",
+      "imageUrl": "https://images.unsplash.com/photo-1606326608690-4e0281b1e588?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxleGFtJTIwcGFwZXJ8ZW58MHx8fHwxNzY5NDEyMTYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "exam paper"
+    },
+    {
+      "id": "feature-videos",
+      "description": "A person watching an educational video on a tablet.",
+      "imageUrl": "https://images.unsplash.com/photo-1597933471507-1ca5765185d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxvbmxpbmUlMjBsZWFybmluZ3xlbnwwfHx8fDE3Njk1MTYyMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "online learning"
+    },
+    {
+      "id": "mind-map-hero",
+      "description": "A complex, colorful mind map on a whiteboard.",
+      "imageUrl": "https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWluZCUyMG1hcHxlbnwwfHx8fDE3Njk0NTEwNTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mind map"
+    },
+    {
+      "id": "mind-map-1",
+      "description": "Mind map about human anatomy.",
+      "imageUrl": "https://images.unsplash.com/photo-1698892289193-eb8b082ecce3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiaW9sb2d5JTIwZGlhZ3JhbXxlbnwwfHx8fDE3Njk1MTYyMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "biology diagram"
+    },
+    {
+      "id": "mind-map-2",
+      "description": "Mind map about organic chemistry reactions.",
+      "imageUrl": "https://images.unsplash.com/photo-1765205560418-60bb4138c283?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjaGVtaXN0cnklMjBkaWFncmFtfGVufDB8fHx8MTc2OTUxNjIxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chemistry diagram"
+    },
+    {
+      "id": "mind-map-3",
+      "description": "Mind map about laws of motion.",
+      "imageUrl": "https://images.unsplash.com/photo-1765205560418-60bb4138c283?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwaHlzaWNzJTIwZGlhZ3JhbXxlbnwwfHx8fDE3Njk1MTYyMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "physics diagram"
+    },
+    {
+      "id": "login-hero",
+      "description": "Abstract secure background",
+      "imageUrl": "https://images.unsplash.com/photo-1761284669171-f84d64496ecf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjBzZWN1cml0eXxlbnwwfHx8fDE3Njk1MDk2NDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract security"
+    }
+  ]
 }
