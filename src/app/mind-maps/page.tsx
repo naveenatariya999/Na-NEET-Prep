@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { AlertCircle } from 'lucide-react';
+import { ArrowRight, BrainCircuit } from 'lucide-react';
 
 type MindMap = {
     id: string;
@@ -22,51 +22,24 @@ type MindMap = {
 };
 
 /**
- * Converts a Google Drive sharing URL to a direct image content link.
- * @param url The original Google Drive sharing URL.
- * @returns A direct URL to the image content.
+ * Converts a Google Drive sharing URL to a clean, embeddable preview URL.
+ * @param url The original Google Drive URL.
+ * @returns The embeddable preview URL.
  */
-function getGoogleDriveImageUrl(url: string): string {
+function getGoogleDriveEmbedUrl(url: string): string {
     const fileIdRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
     const fileMatch = url.match(fileIdRegex);
     if (fileMatch && fileMatch[1]) {
-        return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+        return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
     }
     // If it's not a recognizable Google Drive link, return it as is.
-    // This allows using direct image URLs as well.
     return url;
 }
 
-function MindMapImage({ src, alt }: { src: string, alt: string }) {
-    const [hasError, setHasError] = React.useState(false);
-
-    if (hasError || !src) {
-        return (
-            <div className="w-full aspect-video object-cover bg-muted flex flex-col items-center justify-center text-center p-4">
-                <AlertCircle className="w-10 h-10 text-muted-foreground mb-2" />
-                <p className="text-sm font-semibold text-muted-foreground">Image could not be loaded.</p>
-                <p className="text-xs text-muted-foreground mt-1">Please check if the URL is correct and the file is shared with "Anyone with the link".</p>
-            </div>
-        );
-    }
-
-    return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-            src={src}
-            alt={alt}
-            width="600"
-            height="400"
-            className="w-full aspect-video object-cover"
-            onError={() => setHasError(true)}
-        />
-    );
-}
 
 export default function MindMapsPage() {
   const firestore = useFirestore();
   const [viewingMap, setViewingMap] = React.useState<MindMap | null>(null);
-  const [dialogHasError, setDialogHasError] = React.useState(false);
 
   const mindMapsQuery = useMemoFirebase(() => {
     return query(
@@ -77,18 +50,6 @@ export default function MindMapsPage() {
   }, [firestore]);
 
   const { data: mindMaps, isLoading, error } = useCollection<MindMap>(mindMapsQuery);
-
-  const getDialogImageUrl = () => {
-    if (!viewingMap) return '';
-    return getGoogleDriveImageUrl(viewingMap.url);
-  };
-  
-  React.useEffect(() => {
-    if (viewingMap) {
-        setDialogHasError(false); // Reset error state when a new map is viewed
-    }
-  }, [viewingMap]);
-
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
@@ -105,20 +66,23 @@ export default function MindMapsPage() {
       {error && <p className="text-center text-destructive">Could not load mind maps.</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {!isLoading && mindMaps?.map((map) => {
-            const imageUrl = getGoogleDriveImageUrl(map.url);
-            return (
-            <Card key={map.id} className="overflow-hidden group flex flex-col">
-                <CardHeader className="p-0">
-                   <MindMapImage src={imageUrl} alt={map.title} />
+        {!isLoading && mindMaps?.map((map) => (
+            <Card key={map.id}>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <BrainCircuit className="w-8 h-8 text-primary" />
+                        <CardTitle>{map.title}</CardTitle>
+                    </div>
                 </CardHeader>
-                <CardContent className="p-6 flex flex-col flex-grow">
-                    <Badge variant="secondary" className="mb-2 w-fit">{map.subject}</Badge>
-                    <CardTitle className="text-xl font-headline mb-auto">{map.title}</CardTitle>
-                    <Button onClick={() => setViewingMap(map)} className="mt-4 w-fit">View Full Size</Button>
+                <CardContent>
+                    <Badge variant="secondary" className="mb-4">{map.subject}</Badge>
+                    <p className="text-muted-foreground mb-4">Click to view the mind map.</p>
+                    <Button onClick={() => setViewingMap(map)}>
+                        View Mind Map <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                 </CardContent>
             </Card>
-        )})}
+        ))}
          {!isLoading && mindMaps?.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground">
                 No mind maps available yet.
@@ -132,23 +96,12 @@ export default function MindMapsPage() {
             <DialogTitle>{viewingMap?.title}</DialogTitle>
           </DialogHeader>
           {viewingMap && (
-            <div className="relative flex-grow">
-              {dialogHasError ? (
-                 <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-center p-4">
-                    <AlertCircle className="w-10 h-10 text-muted-foreground mb-2" />
-                    <p className="text-sm font-semibold text-muted-foreground">Image could not be loaded.</p>
-                    <p className="text-xs text-muted-foreground mt-1">Please check if the URL is correct and the file is shared with "Anyone with the link".</p>
-                </div>
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                    src={getDialogImageUrl()}
-                    alt={viewingMap.title || 'Mind Map'}
-                    className="absolute top-0 left-0 w-full h-full object-contain"
-                    onError={() => setDialogHasError(true)}
+            <div className="flex-grow w-full h-full -mx-2 -mb-2 sm:mx-0 sm:mb-0">
+                <iframe
+                    src={getGoogleDriveEmbedUrl(viewingMap.url)}
+                    className="w-full h-full border-0 rounded-b-lg"
                 />
-              )}
-            </div>
+           </div>
           )}
         </DialogContent>
       </Dialog>
