@@ -88,7 +88,7 @@ export default function SubjectPdfsPage() {
                 {!isLoading && pdfs?.map((pdf) => {
                     const embedUrl = getGoogleDriveEmbedUrl(pdf.url);
                     return (
-                    <Card key={pdf.id}>
+                    <Card key={pdf.id} className="animated-card">
                         <CardHeader>
                              <div className="flex items-center gap-4">
                                 <FileText className="w-8 h-8 text-primary" />

@@ -75,7 +75,7 @@ export default function VideosPage() {
           if (!videoId) return null;
 
           return (
-            <Card key={video.id}>
+            <Card key={video.id} className="animated-card">
                 <CardHeader>
                 <YouTubeEmbed videoId={videoId} title={video.title} />
                 </CardHeader>

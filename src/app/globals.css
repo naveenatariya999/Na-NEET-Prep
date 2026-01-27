@@ -82,3 +82,52 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes gradient-spin {
+  0% {
+    --gradient-angle: 0deg;
+  }
+  100% {
+    --gradient-angle: 360deg;
+  }
+}
+
+@layer utilities {
+  .animated-card {
+    position: relative;
+    z-index: 1;
+  }
+
+  .animated-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: conic-gradient(
+      from var(--gradient-angle),
+      hsl(var(--chart-1)),
+      hsl(var(--chart-2)),
+      hsl(var(--chart-3)),
+      hsl(var(--chart-4)),
+      hsl(var(--chart-5)),
+      hsl(var(--chart-1))
+    );
+    animation: gradient-spin 4s linear infinite;
+    border-radius: inherit; /* Use the parent's border radius */
+    z-index: -2;
+  }
+
+  .animated-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--card));
+    border-radius: inherit;
+    z-index: -1;
+  }
+}

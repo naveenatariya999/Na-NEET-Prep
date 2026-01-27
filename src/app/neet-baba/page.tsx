@@ -62,7 +62,7 @@ export default function NeetBabaPage() {
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6 flex justify-center">
-      <Card className="w-full max-w-3xl h-[80vh] flex flex-col">
+      <Card className="w-full max-w-3xl h-[80vh] flex flex-col animated-card">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold tracking-tight font-headline sm:text-3xl flex items-center justify-center gap-2">
             <Bot className="h-8 w-8 text-primary" />

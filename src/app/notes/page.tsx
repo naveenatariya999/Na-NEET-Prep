@@ -18,7 +18,7 @@ export default function NotesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {subjects.map((subject) => (
-          <Card key={subject.id}>
+          <Card key={subject.id} className="animated-card">
             <CardHeader>
               <CardTitle className="text-2xl font-headline">{subject.name}</CardTitle>
               <CardDescription>{subject.description}</CardDescription>

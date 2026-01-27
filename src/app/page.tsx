@@ -84,7 +84,7 @@ export default function Home() {
           </div>
           <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3 pt-12">
             {features.map((feature) => (
-              <Card key={feature.title} className="group overflow-hidden">
+              <Card key={feature.title} className="group overflow-hidden animated-card">
                 <CardHeader className="p-0">
                   {feature.image && (
                      <Image

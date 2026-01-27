@@ -88,7 +88,7 @@ export default function SubjectNotesPage() {
                 {!isLoading && notes?.map((note) => {
                     const embedUrl = getGoogleDriveEmbedUrl(note.url);
                     return (
-                    <Card key={note.id}>
+                    <Card key={note.id} className="animated-card">
                         <CardHeader>
                              <div className="flex items-center gap-4">
                                 <BookOpen className="w-8 h-8 text-primary" />

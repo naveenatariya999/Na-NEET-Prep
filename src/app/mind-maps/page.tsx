@@ -67,7 +67,7 @@ export default function MindMapsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {!isLoading && mindMaps?.map((map) => (
-            <Card key={map.id}>
+            <Card key={map.id} className="animated-card">
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <BrainCircuit className="w-8 h-8 text-primary" />
