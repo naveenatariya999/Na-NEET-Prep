@@ -46,7 +46,7 @@
         },
         "contentType": {
           "type": "string",
-          "description": "Type of content (e.g., 'notes', 'pyq', 'video', 'mindmap')."
+          "description": "Type of content (e.g., 'notes', 'pyq', 'video', 'mindmap', 'pdf')."
         },
         "subject": {
           "type": "string",
@@ -60,6 +60,15 @@
         "adminId": {
           "type": "string",
           "description": "Reference to the Admin who uploaded the material. (Relationship: Admin 1:N StudyMaterial)"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Whether the material is visible to students."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the material was created."
         }
       },
       "required": [
@@ -68,7 +77,9 @@
         "contentType",
         "subject",
         "url",
-        "adminId"
+        "adminId",
+        "visible",
+        "createdAt"
       ]
     },
     "Admin": {
@@ -94,8 +105,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "google"
     ]
   },
   "firestore": {

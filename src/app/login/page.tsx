@@ -1,6 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { NaNeetPrepLogo } from '@/components/icons';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useToast } from '@/hooks/use-toast';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -28,12 +34,38 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find(p => p.id === 'login-hero');
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
 
-  async function login() {
-    'use server';
-    // In a real app, this would involve an OAuth flow with Google.
-    // For this prototype, we'll just redirect to the admin dashboard.
-    redirect('/admin/dashboard');
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/admin/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      router.push('/admin/dashboard');
+    } catch (error) {
+      console.error('Login failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Could not log in with Google. Please try again.',
+      });
+    }
+  };
+
+  if (isUserLoading || user) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <p>Loading...</p>
+        </div>
+    )
   }
 
   return (
@@ -49,12 +81,12 @@ export default function LoginPage() {
               Please log in using the verified admin Gmail account.
             </p>
           </div>
-          <form action={login}>
-            <Button variant="outline" className="w-full" type="submit">
-              <GoogleIcon className="mr-2 h-4 w-4" />
-              Login with Google
-            </Button>
-          </form>
+          
+          <Button variant="outline" className="w-full" onClick={handleLogin}>
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            Login with Google
+          </Button>
+
           <div className="mt-4 text-center text-sm">
             Not an admin?{' '}
             <Link href="/" className="underline">

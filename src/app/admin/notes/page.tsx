@@ -14,30 +14,179 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { adminNotes } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { subjects } from '@/lib/data';
 
 type Note = {
   id: string;
   title: string;
   subject: string;
-  lastUpdated: string;
+  createdAt: { toDate: () => Date };
   visible: boolean;
+  url: string;
+  adminId: string;
+  contentType: string;
 };
 
+function AddNoteDialog({ onNoteAdded }: { onNoteAdded: () => void }) {
+  const [open, setOpen] = React.useState(false);
+  const [title, setTitle] = React.useState('');
+  const [subject, setSubject] = React.useState('');
+  const [url, setUrl] = React.useState('');
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  const handleSubmit = async () => {
+    if (!title || !subject || !url || !user) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing fields',
+        description: 'Please fill out all fields.',
+      });
+      return;
+    }
+
+    const newNote = {
+      title,
+      subject,
+      url,
+      contentType: 'notes',
+      visible: true,
+      adminId: user.uid,
+      createdAt: serverTimestamp(),
+    };
+
+    addDocumentNonBlocking(collection(firestore, 'study_materials'), newNote);
+    
+    toast({
+      title: 'Note Added',
+      description: `${title} has been added successfully.`,
+    });
+
+    onNoteAdded();
+    setOpen(false);
+    setTitle('');
+    setSubject('');
+    setUrl('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="h-8 gap-1">
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            Add Note
+          </span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add New Note</DialogTitle>
+          <DialogDescription>
+            Fill in the details for the new study note. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">
+              Title
+            </Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="subject" className="text-right">
+              Subject
+            </Label>
+             <Select onValueChange={setSubject} value={subject}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                    {subjects.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="url" className="text-right">
+              URL
+            </Label>
+            <Input
+              id="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g., Google Drive link"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSubmit}>Save Note</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function AdminNotesPage() {
-  const [notes, setNotes] = React.useState<Note[]>(adminNotes);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const notesQuery = useMemoFirebase(() => {
+    return query(collection(firestore, 'study_materials'), where('contentType', '==', 'notes'));
+  }, [firestore]);
+
+  const { data: notes, isLoading, error } = useCollection<Note>(notesQuery);
 
   const handleVisibilityChange = (noteId: string, newVisibility: boolean) => {
-    setNotes(notes.map(note =>
-      note.id === noteId ? { ...note, visible: newVisibility } : note
-    ));
-    // Here you would typically call an API to update the backend
+    const noteRef = doc(firestore, 'study_materials', noteId);
+    updateDocumentNonBlocking(noteRef, { visible: newVisibility });
+  };
+
+  const handleDelete = (noteId: string) => {
+    const noteRef = doc(firestore, 'study_materials', noteId);
+    deleteDocumentNonBlocking(noteRef);
+    toast({
+      title: 'Note Deleted',
+      description: 'The note has been successfully deleted.',
+    });
   };
 
   return (
@@ -45,12 +194,7 @@ export default function AdminNotesPage() {
        <div className="flex items-center">
           <h1 className="text-lg font-semibold md:text-2xl font-headline">Notes</h1>
           <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" className="h-8 gap-1">
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Add Note
-              </span>
-            </Button>
+            <AddNoteDialog onNoteAdded={() => {}} />
           </div>
         </div>
       <Card>
@@ -66,7 +210,7 @@ export default function AdminNotesPage() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Subject</TableHead>
-                <TableHead>Last Updated</TableHead>
+                <TableHead>Created At</TableHead>
                 <TableHead>Visibility</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -74,13 +218,16 @@ export default function AdminNotesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {notes.map((note) => (
+              {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading notes...</TableCell></TableRow>}
+              {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+              {!isLoading && notes?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No notes found.</TableCell></TableRow>}
+              {notes?.map((note) => (
                 <TableRow key={note.id}>
                   <TableCell className="font-medium">{note.title}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{note.subject}</Badge>
                   </TableCell>
-                  <TableCell>{note.lastUpdated}</TableCell>
+                  <TableCell>{note.createdAt ? note.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
                   <TableCell>
                     <Switch
                       checked={note.visible}
@@ -98,8 +245,15 @@ export default function AdminNotesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => window.open(note.url, '_blank')}>View</DropdownMenuItem>
+                        <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onSelect={() => handleDelete(note.id)}
+                            className="text-destructive"
+                        >
+                            Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -65,10 +65,3 @@ export const adminDashboardStats = {
   totalVideos: 25,
   totalMindMaps: 10,
 };
-
-export const adminNotes = [
-  { id: 'bio-001', title: 'The Living World', subject: 'Biology', lastUpdated: '2023-10-27', visible: true },
-  { id: 'phy-001', title: 'Units and Measurements', subject: 'Physics', lastUpdated: '2023-10-26', visible: true },
-  { id: 'chem-001', title: 'Some Basic Concepts of Chemistry', subject: 'Chemistry', lastUpdated: '2023-10-25', visible: false },
-  { id: 'bio-002', title: 'Biological Classification', subject: 'Biology', lastUpdated: '2023-10-24', visible: true },
-];
