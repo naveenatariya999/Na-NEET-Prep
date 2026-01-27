@@ -24,7 +24,11 @@ export default function NotesPage() {
               <CardDescription>{subject.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{subject.chapters} chapters available.</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {subject.chapters > 0
+                  ? `${subject.chapters} chapters available.`
+                  : 'View available materials.'}
+              </p>
               <Button asChild>
                 <Link href={`/notes/${subject.id}`}>
                   View Chapters <ArrowRight className="ml-2 h-4 w-4" />
