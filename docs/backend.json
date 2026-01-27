@@ -69,6 +69,10 @@
             "type": "string",
             "format": "date-time",
             "description": "Timestamp when the material was created."
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The original name of the uploaded file."
         }
       },
       "required": [
