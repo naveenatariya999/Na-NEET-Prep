@@ -17,6 +17,26 @@ type Pdf = {
     url: string;
 };
 
+/**
+ * Converts a standard Google Drive sharing URL to a preview URL.
+ * e.g., '.../file/d/FILE_ID/view?usp=sharing' -> '.../file/d/FILE_ID/preview'
+ * This provides a cleaner viewing experience without the Google Drive UI.
+ * @param url The original Google Drive URL.
+ * @returns The preview URL, or the original URL if it's not a valid Drive link.
+ */
+function getGoogleDrivePreviewUrl(url: string): string {
+    const fileIdRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+    const match = url.match(fileIdRegex);
+
+    if (match && match[1]) {
+        const fileId = match[1];
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+    
+    // If it doesn't look like a standard Google Drive share link, return it as is.
+    return url;
+}
+
 
 export default function SubjectPdfsPage() {
     const params = useParams();
@@ -52,7 +72,9 @@ export default function SubjectPdfsPage() {
             {error && <p className="text-center text-destructive">Could not load PDFs.</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {!isLoading && pdfs?.map((pdf) => (
+                {!isLoading && pdfs?.map((pdf) => {
+                    const previewUrl = getGoogleDrivePreviewUrl(pdf.url);
+                    return (
                     <Card key={pdf.id}>
                         <CardHeader>
                              <div className="flex items-center gap-4">
@@ -64,13 +86,13 @@ export default function SubjectPdfsPage() {
                              <Badge variant="secondary" className="mb-4">{pdf.subject}</Badge>
                              <p className="text-muted-foreground mb-4">Click to view the PDF material.</p>
                             <Button asChild>
-                                <Link href={pdf.url} target="_blank">
+                                <Link href={previewUrl} target="_blank">
                                     View PDF <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
                         </CardContent>
                     </Card>
-                ))}
+                )})}
                  {!isLoading && pdfs?.length === 0 && (
                     <div className="col-span-full text-center text-muted-foreground">
                         No PDFs available for this subject yet.
