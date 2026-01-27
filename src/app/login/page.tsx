@@ -51,7 +51,6 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/admin/dashboard');
     } catch (error: any) {
-      console.error('Login failed:', error);
       if (error.code === 'auth/operation-not-allowed') {
         toast({
           variant: 'destructive',
@@ -60,7 +59,10 @@ export default function LoginPage() {
             'Google Sign-In must be enabled in the Firebase console. Go to Authentication > Sign-in method to enable it.',
           duration: 9000,
         });
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // User closed the login popup intentionally. No error message is needed.
       } else {
+        console.error('Login failed:', error);
         toast({
           variant: 'destructive',
           title: 'Login Failed',
