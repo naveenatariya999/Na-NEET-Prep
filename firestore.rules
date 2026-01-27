@@ -1,44 +1,41 @@
 /**
  * Core Philosophy:
  * This ruleset implements a Role-Based Access Control (RBAC) model. The system
- * distinguishes between 'student' and 'admin' roles. All study materials are
- * publicly readable by anyone (including students and unauthenticated users) to
- * ensure easy access to learning content. However, all write operations (creating,
- * editing, deleting content) are strictly reserved for users designated as 'admins'.
- * User profiles are kept private and are only accessible by their owners.
+ * distinguishes between 'student' and 'admin' roles. The primary administrator is
+ * identified by the email 'naveenatariya999@gmail.com'. All study materials are
+ * publicly readable by anyone to ensure easy access. However, all write
+ * operations (creating, editing, deleting) are strictly reserved for the designated admin.
+ * User profiles are private and only accessible by their owners.
  *
  * Data Structure:
  * The data is organized into three top-level collections:
  * - /users/{userId}: Stores private user profile information.
  * - /admins/{adminId}: An allow-list of user UIDs that have admin privileges. This
- *   collection is not client-readable and is used internally by rules.
+ *   collection is not currently used by the rules for write access but is kept
+ *   for potential future server-side management.
  * - /study_materials/{studyMaterialId}: Contains all public study content.
  *
  * Key Security Decisions:
- * - Public Read, Admin Write: Study materials are globally readable to minimize
- *   access friction for students, but write access is locked down to admins.
- * - Server-Side Admin Management: The /admins collection is intentionally made
- *   inaccessible to clients. Promoting a user to an admin is a privileged
- *   operation that must be performed through a trusted server environment (e.g.,
- *   Cloud Function or manual console edit) to prevent unauthorized escalation.
+ * - Public Read, Admin Write: Study materials are globally readable, but write
+ *   access is locked down to a specific admin email.
+ * - Email-Based Admin-Check: Instead of managing an '/admins' collection from the client,
+ *   the `isAdmin()` function securely verifies that the logged-in user's email is
+ *   'naveenatariya999@gmail.com'. This is a robust method for a single-admin app.
  * - Strict User Data Privacy: A user's document in the /users collection can only
  *   be accessed or modified by that specific user. User listing is disabled.
  *
  * Denormalization for Authorization:
- * To ensure fast and secure authorization, the `adminId` (the UID of the admin who
- * created the content) is denormalized directly onto each document in the
- * `/study_materials` collection. This allows update and delete rules to instantly
+ * To ensure fast and secure authorization for updates and deletes, the `adminId`
+ * (the UID of the admin who created the content) is denormalized directly onto each
+ * document in the `/study_materials` collection. This allows rules to instantly
  * verify ownership (`request.auth.uid == resource.data.adminId`) without needing
- * slow and costly `get()` calls to other collections. The `/admins` collection
- * itself serves as a central point for a fast `exists()` check to verify a user's
- * admin role for any create operation.
+ * slow and costly `get()` calls.
  *
  * Structural Segregation:
  * This ruleset uses a single public `/study_materials` collection governed by
  * roles rather than separating content into different collections. This is suitable
  * because all study material is intended to be public, and the authorization logic
- * is based on the user's role (admin) rather than the content's state (e.g., draft
- * vs. published).
+ * is based on the user's role (admin) rather than the content's state.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -64,12 +61,12 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the requesting user is an administrator.
-     * This is done by checking for the existence of their UID as a document
-     * in the /admins collection. This is secure and performant.
+     * Checks if the requesting user is the designated administrator.
+     * This is done by verifying the authenticated user's email address.
+     * This is secure as the email in the auth token is verified by Firebase.
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && request.auth.token.email == 'naveenatariya999@gmail.com';
     }
 
     /**
@@ -127,7 +124,7 @@ service cloud.firestore {
      * @description The admins collection is a server-managed list of admin UIDs.
      *              No client, regardless of role, can read or write to this collection.
      *              This prevents users from seeing who the admins are or from trying
-     *              to promote themselves. The `isAdmin()` function works without this permission.
+     *              to promote themselves.
      * @path /admins/{adminId}
      * @allow (none) No operation is permitted from the client-side.
      * @deny (get) An admin tries to read the admin document. auth.uid = 'admin_abc', path = /admins/admin_abc.
@@ -142,14 +139,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Study materials are public for anyone to read. Only authenticated
-     *              admins can create new materials. Only the original admin who
-     *              created a material can update or delete it.
+     * @description Study materials are public for anyone to read. Only the authenticated
+     *              admin ('naveenatariya999@gmail.com') can create new materials.
+     *              Only the original admin who created a material can update or delete it.
      * @path /study_materials/{studyMaterialId}
      * @allow (list) An unauthenticated student browses the list of available study materials.
-     * @allow (create) An admin uploads a new PDF. auth.uid is in /admins collection.
+     * @allow (create) An admin uploads a new PDF. auth.email is 'naveenatariya999@gmail.com'.
      * @deny (update) A student tries to edit the description of a study material.
-     * @deny (delete) An admin tries to delete a material created by another admin.
+     * @deny (delete) An admin tries to delete a material created by another admin (not possible in single-admin setup).
      * @principle Implements public read access with role-based write and ownership-based edit/delete controls.
      */
     match /study_materials/{studyMaterialId} {
