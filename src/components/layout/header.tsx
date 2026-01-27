@@ -9,6 +9,7 @@ import {
   PlaySquare,
   ScrollText,
   FileText,
+  Bot,
 } from 'lucide-react';
 
 import { NaNeetPrepLogo } from '@/components/icons';
@@ -29,6 +30,7 @@ const navLinks = [
   { href: '/pyqs', label: 'PYQs', icon: ScrollText },
   { href: '/videos', label: 'Videos', icon: PlaySquare },
   { href: '/mind-maps', label: 'Mind Maps', icon: BrainCircuit },
+  { href: '/neet-baba', label: 'NEET BABA', icon: Bot },
 ];
 
 export function PublicHeader() {
