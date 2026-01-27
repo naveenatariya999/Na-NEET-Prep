@@ -147,13 +147,17 @@ function AddMindMapDialog({ onMindMapAdded }: { onMindMapAdded: () => void }) {
             <Label htmlFor="url" className="text-right">
               URL
             </Label>
-            <Input
-              id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="col-span-3"
-              placeholder="e.g., Link to mind map image"
-            />
+            <div className="col-span-3">
+              <Input
+                id="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="e.g., Link to mind map image"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                  For Google Drive, share with "Anyone with the link".
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>
