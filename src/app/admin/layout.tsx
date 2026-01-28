@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   BookOpen,
   BrainCircuit,
@@ -164,20 +165,42 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
+  const { isAdmin, isLoading } = useAdmin();
+  const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isLoading && !user) {
       router.replace('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isLoading, router]);
 
-  if (isUserLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
+        <p>Loading and verifying permissions...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You do not have permission to view this page.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Please ensure you are logged in with the authorized admin account.
+          </p>
+        </div>
+        <div className="flex gap-4">
+           <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+           <Button variant="secondary" onClick={() => signOut(auth)}>Logout</Button>
+        </div>
       </div>
     );
   }
