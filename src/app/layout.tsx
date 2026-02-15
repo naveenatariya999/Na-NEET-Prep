@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata: Metadata = {
   title: 'Na-NEET Prep',
   description: 'Your expert guide to mastering the NEET exam.',
+  manifest: '/manifest.json', 
 };
 
 export default function RootLayout({
