@@ -1,127 +1,166 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { db } from '@/lib/firebase'; // आपका फायरबेस कॉन्फिग
-import { collection, query, getDocs } from 'firebase/firestore';
-import { ArrowRight, Search, FileText, PlaySquare, Loader2 } from 'lucide-react';
+import { ArrowRight, BookOpen, BrainCircuit, PlaySquare, ScrollText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+// आपकी असली फीचर्स लिस्ट (बिना किसी बदलाव के)
+const features = [
+  {
+    icon: BookOpen,
+    title: 'Curated Notes',
+    description: 'High-quality, hand-crafted study notes for Physics, Chemistry, and Biology.',
+    href: '/notes',
+    image: PlaceHolderImages.find(p => p.id === 'feature-notes'),
+  },
+  {
+    icon: ScrollText,
+    title: 'PYQ Access',
+    description: 'Browse Previous Year Questions with original, insightful explanations.',
+    href: '/pyqs',
+    image: PlaceHolderImages.find(p => p.id === 'feature-pyqs'),
+  },
+  {
+    icon: PlaySquare,
+    title: 'Video Lectures',
+    description: 'Stream educational videos from our YouTube channel without leaving the app.',
+    href: '/videos',
+    image: PlaceHolderImages.find(p => p.id === 'feature-videos'),
+  },
+];
+
+const mindMapImage = PlaceHolderImages.find(p => p.id === 'mind-map-hero');
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [allData, setAllData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  // Firestore से सारा डेटा एक बार लोड करना (Notes, PYQs, Videos)
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const collections = ['notes', 'pyqs', 'videos'];
-        let combinedData: any[] = [];
-
-        for (const colName of collections) {
-          const q = query(collection(db, colName));
-          const snapshot = await getDocs(q);
-          snapshot.forEach(doc => {
-            combinedData.push({ id: doc.id, ...doc.data(), type: colName });
-          });
-        }
-        setAllData(combinedData);
-      } catch (e) {
-        console.error("Data load error:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
-
-  // सर्च फिल्टर: जो आप टाइप करेंगे वो यहाँ मैच होगा
-  const filteredResults = allData.filter(item => 
-    (item.title || item.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+  // सर्च फिल्टर: जो टाइप करोगे वो इन 3 कार्ड्स में से मैच होगा
+  const filteredFeatures = features.filter((f) => 
+    f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    f.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background">
-      {/* HERO SECTION - आपका असली लुक */}
-      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 border-b">
+    <div className="flex flex-col min-h-[100dvh]">
+      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-card">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-2 items-center">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl font-headline">
-                Your Expert Guide to Mastering the NEET Exam
-              </h1>
-              <p className="text-muted-foreground md:text-xl max-w-[600px]">
-                Access high-quality curated content, previous year questions, and visual mind maps.
-              </p>
+          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
+            <div className="flex flex-col justify-center space-y-4">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+                  Your Expert Guide to Mastering the NEET Exam
+                </h1>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                  Access high-quality curated content, previous year questions, and visual mind maps to excel in your preparation.
+                </p>
+              </div> 
 
-              {/* सर्च बार - अब यह काम करेगा! */}
-              <div className="relative max-w-md mt-8">
-                <input
-                  type="text"
-                  placeholder="Search chapters (e.g. Origin, Biomolecules)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-muted/50 border-2 border-transparent focus:border-primary p-4 pl-12 rounded-2xl outline-none transition-all"
-                />
-                <Search className="absolute left-4 top-4 text-muted-foreground" size={20} />
-                {loading && <Loader2 className="absolute right-4 top-4 animate-spin text-primary" size={20} />}
+              {/* --- सर्च बार यहाँ है --- */}
+              <div className="w-full max-w-xl mt-8 mb-4">
+                <div className="relative group">
+                  <input 
+                    type="text" 
+                    placeholder="Search chapters, notes, videos..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-background border-2 border-muted p-4 pl-12 rounded-2xl focus:border-primary outline-none transition-all shadow-sm group-hover:shadow-md text-foreground"
+                  />
+                  <span className="absolute left-4 top-4 text-muted-foreground"><Search size={20} /></span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/notes">
+                    Start Learning
+                    <ArrowRight className="ml-2" />
+                  </Link>
+                </Button>
               </div>
             </div>
-            
-            <Image
-              src={PlaceHolderImages.find(p => p.id === 'home-hero')?.imageUrl || "/hero.jpg"}
-              width={600} height={400} alt="NEET Prep"
-              className="rounded-3xl shadow-2xl object-cover aspect-video"
-            />
+            {PlaceHolderImages.find(p => p.id === 'home-hero') && (
+              <Image
+                src={PlaceHolderImages.find(p => p.id === 'home-hero')?.imageUrl!}
+                width="600" height="400" alt="Hero"
+                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last"
+              />
+            )}
           </div>
         </div>
       </section>
 
-      {/* SEARCH RESULTS SECTION */}
-      <section className="w-full py-12 bg-slate-50/50 dark:bg-slate-900/20">
+      <section className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
-          <h2 className="text-3xl font-bold mb-8 text-center">Study Material</h2>
-          
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-            {searchQuery !== "" ? (
-              filteredResults.length > 0 ? (
-                filteredResults.map((item, idx) => (
-                  <Link key={idx} href={`/${item.type}`}>
-                    <Card className="hover:shadow-lg transition-all border-2 hover:border-primary group cursor-pointer">
-                      <CardContent className="p-6 flex items-center gap-4">
-                        <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                          {item.type === 'videos' ? <PlaySquare /> : <FileText />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-lg group-hover:text-primary transition-colors">
-                            {item.title || item.name}
-                          </p>
-                          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                            {item.type}
-                          </span>
-                        </div>
-                        <ArrowRight size={18} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12 border-2 border-dashed rounded-3xl">
-                  <p className="text-muted-foreground italic">"{searchQuery}" के नाम से कुछ नहीं मिला।</p>
-                </div>
-              )
-            ) : (
-              // जब सर्च खाली हो, तो पुराने डिफ़ॉल्ट कार्ड्स दिखाएं
-              <div className="col-span-full text-center text-muted-foreground">
-                ऊपर सर्च बार में चैप्टर का नाम टाइप करें।
-              </div>
-            )}
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="space-y-2">
+              <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">Key Features</div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                Everything You Need to Succeed
+              </h2>
+            </div>
           </div>
+          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3 pt-12">
+            {filteredFeatures.map((feature) => (
+              <Card key={feature.title} className="group overflow-hidden animated-card">
+                <CardHeader className="p-0">
+                  {feature.image && (
+                    <Image
+                      src={feature.image.imageUrl}
+                      alt={feature.title}
+                      width={600} height={400}
+                      className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
+                  <div className="p-6">
+                    <CardTitle className="flex items-center gap-2">
+                      <feature.icon className="w-6 h-6 text-primary" />
+                      {feature.title}
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                  <Button variant="link" asChild className="p-0 mt-4 h-auto">
+                    <Link href={feature.href}>
+                      Explore More <ArrowRight className="ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-card">
+        <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-10">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">
+              Visualize Concepts with Mind Maps
+            </h2>
+            <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              Our admin-curated mind maps help you connect ideas and see the bigger picture.
+            </p>
+            <Button asChild>
+              <Link href="/mind-maps">
+                View Mind Maps
+                <BrainCircuit className="ml-2" />
+              </Link>
+            </Button>
+          </div>
+          {mindMapImage && (
+            <div className="flex space-x-4">
+              <Image
+                src={mindMapImage.imageUrl}
+                width="600" height="400" alt="Mind Map"
+                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
+              />
+            </div>
+          )}
         </div>
       </section>
     </div>
