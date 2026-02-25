@@ -45,7 +45,30 @@ export default function Home() {
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
                   Access high-quality curated content, previous year questions, and visual mind maps to excel in your preparation.
                 </p>
-              </div>
+              </div> 
+              {/* --- सर्च बार यहाँ से शुरू --- */}
+<div className="w-full max-w-xl mt-8 mb-4">
+  <div className="relative group">
+    <input 
+      type="text" 
+      placeholder="Search chapters, notes, videos..." 
+      className="w-full bg-background border-2 border-muted p-4 pl-12 rounded-2xl focus:border-primary outline-none transition-all shadow-sm group-hover:shadow-md text-foreground"
+    />
+    <span className="absolute left-4 top-4 text-muted-foreground">🔍</span>
+  </div>
+  
+  <div className="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
+    {['All', 'Notes', 'PDFs', 'PYQs', 'Videos', 'Mind Maps'].map((tab) => (
+      <button 
+        key={tab} 
+        className="px-4 py-1.5 rounded-full border border-muted bg-background text-sm font-medium hover:bg-secondary hover:text-secondary-foreground transition-colors whitespace-nowrap"
+      >
+        {tab}
+      </button>
+    ))}
+  </div>
+</div>
+{/* --- सर्च बार यहाँ खत्म --- */}
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Button asChild size="lg">
                   <Link href="/notes">
