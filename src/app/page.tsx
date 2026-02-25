@@ -1,160 +1,127 @@
 "use client";
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, BrainCircuit, PlaySquare, ScrollText, Search } from 'lucide-react';
+import { db } from '@/lib/firebase'; // आपका फायरबेस कॉन्फिग
+import { collection, query, getDocs } from 'firebase/firestore';
+import { ArrowRight, Search, FileText, PlaySquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-// यह वो लिस्ट है जहाँ आपकी वेबसाइट का सारा डेटा (Notes, PYQs, Videos) रहता है
-const features = [
-  {
-    id: 'notes',
-    icon: BookOpen,
-    title: 'Curated Notes',
-    description: 'High-quality, hand-crafted study notes for Physics, Chemistry, and Biology.',
-    href: '/notes',
-    image: PlaceHolderImages.find(p => p.id === 'feature-notes'),
-    category: 'Notes',
-  },
-  {
-    id: 'pyqs',
-    icon: ScrollText,
-    title: 'PYQ Access',
-    description: 'Browse Previous Year Questions with original, insightful explanations.',
-    href: '/pyqs',
-    image: PlaceHolderImages.find(p => p.id === 'feature-pyqs'),
-    category: 'PYQs',
-  },
-  {
-    id: 'videos',
-    icon: PlaySquare,
-    title: 'Video Lectures',
-    description: 'Stream educational videos from our YouTube channel without leaving the app.',
-    href: '/videos',
-    image: PlaceHolderImages.find(p => p.id === 'feature-videos'),
-    category: 'Videos',
-  },
-  {
-    id: 'inheritance',
-    icon: BookOpen,
-    title: 'Principles of Inheritance and Variation',
-    description: 'Comprehensive biology notes for NEET preparation.',
-    href: '/notes/biology', // यहाँ आपका असली लिंक आएगा
-    category: 'Notes',
-  }
-];
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allData, setAllData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // सर्च फिल्टर: जो भी वेबसाइट के डेटा में है, उसे यहाँ से खोजा जाएगा
-  const filteredResults = features.filter(item => 
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Firestore से सारा डेटा एक बार लोड करना (Notes, PYQs, Videos)
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const collections = ['notes', 'pyqs', 'videos'];
+        let combinedData: any[] = [];
+
+        for (const colName of collections) {
+          const q = query(collection(db, colName));
+          const snapshot = await getDocs(q);
+          snapshot.forEach(doc => {
+            combinedData.push({ id: doc.id, ...doc.data(), type: colName });
+          });
+        }
+        setAllData(combinedData);
+      } catch (e) {
+        console.error("Data load error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // सर्च फिल्टर: जो आप टाइप करेंगे वो यहाँ मैच होगा
+  const filteredResults = allData.filter(item => 
+    (item.title || item.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
-      {/* --- HERO SECTION (आपका पुराना लुक) --- */}
-      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-card">
+    <div className="flex flex-col min-h-[100dvh] bg-background">
+      {/* HERO SECTION - आपका असली लुक */}
+      <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 border-b">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                  Your Expert Guide to Mastering the NEET Exam
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Access high-quality curated content, previous year questions, and visual mind maps.
-                </p>
-              </div>
+          <div className="grid gap-6 lg:grid-cols-2 items-center">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl font-headline">
+                Your Expert Guide to Mastering the NEET Exam
+              </h1>
+              <p className="text-muted-foreground md:text-xl max-w-[600px]">
+                Access high-quality curated content, previous year questions, and visual mind maps.
+              </p>
 
-              {/* स्मार्ट सर्च बार - डिज़ाइन में कोई बदलाव नहीं */}
-              <div className="w-full max-w-md mt-6">
-                <div className="relative group">
-                  <input
-                    type="text"
-                    placeholder="Search anything on website..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-background border-2 border-muted p-4 pl-12 rounded-2xl focus:border-primary outline-none transition-all shadow-sm"
-                  />
-                  <Search className="absolute left-4 top-4 text-muted-foreground" size={20} />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 min-[400px]:flex-row pt-4">
-                <Button asChild size="lg">
-                  <Link href="/notes">Start Learning <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                </Button>
+              {/* सर्च बार - अब यह काम करेगा! */}
+              <div className="relative max-w-md mt-8">
+                <input
+                  type="text"
+                  placeholder="Search chapters (e.g. Origin, Biomolecules)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-muted/50 border-2 border-transparent focus:border-primary p-4 pl-12 rounded-2xl outline-none transition-all"
+                />
+                <Search className="absolute left-4 top-4 text-muted-foreground" size={20} />
+                {loading && <Loader2 className="absolute right-4 top-4 animate-spin text-primary" size={20} />}
               </div>
             </div>
-            {/* हीरो इमेज */}
-            {PlaceHolderImages.find(p => p.id === 'home-hero') && (
-              <Image
-                src={PlaceHolderImages.find(p => p.id === 'home-hero')?.imageUrl!}
-                width="600"
-                height="400"
-                alt="Hero"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last shadow-2xl"
-              />
-            )}
+            
+            <Image
+              src={PlaceHolderImages.find(p => p.id === 'home-hero')?.imageUrl || "/hero.jpg"}
+              width={600} height={400} alt="NEET Prep"
+              className="rounded-3xl shadow-2xl object-cover aspect-video"
+            />
           </div>
         </div>
       </section>
 
-      {/* --- FEATURES SECTION (सर्च रिजल्ट्स यहीं दिखेंगे) --- */}
-      <section className="w-full py-12 md:py-24 lg:py-32">
+      {/* SEARCH RESULTS SECTION */}
+      <section className="w-full py-12 bg-slate-50/50 dark:bg-slate-900/20">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Study Material</h2>
-          </div>
+          <h2 className="text-3xl font-bold mb-8 text-center">Study Material</h2>
           
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredResults.length > 0 ? (
-              filteredResults.map((item) => (
-                <Card key={item.title} className="group overflow-hidden border-2 hover:border-primary transition-all">
-                  <CardHeader className="p-0">
-                    {item.image && (
-                      <Image src={item.image.imageUrl} alt={item.title} width={600} height={400} className="w-full aspect-video object-cover" />
-                    )}
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <CardTitle className="flex items-center gap-2 text-xl mb-2">
-                      <item.icon className="w-6 h-6 text-primary" />
-                      {item.title}
-                    </CardTitle>
-                    <p className="text-muted-foreground text-sm mb-4">{item.description}</p>
-                    <Button variant="link" asChild className="p-0 h-auto font-bold text-primary">
-                      <Link href={item.href}>View Content <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+            {searchQuery !== "" ? (
+              filteredResults.length > 0 ? (
+                filteredResults.map((item, idx) => (
+                  <Link key={idx} href={`/${item.type}`}>
+                    <Card className="hover:shadow-lg transition-all border-2 hover:border-primary group cursor-pointer">
+                      <CardContent className="p-6 flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                          {item.type === 'videos' ? <PlaySquare /> : <FileText />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-lg group-hover:text-primary transition-colors">
+                            {item.title || item.name}
+                          </p>
+                          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            {item.type}
+                          </span>
+                        </div>
+                        <ArrowRight size={18} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12 border-2 border-dashed rounded-3xl">
+                  <p className="text-muted-foreground italic">"{searchQuery}" के नाम से कुछ नहीं मिला।</p>
+                </div>
+              )
             ) : (
-              <div className="col-span-full text-center p-10 border-2 border-dashed rounded-2xl text-muted-foreground">
-                "{searchQuery}" के नाम से कुछ नहीं मिला।
+              // जब सर्च खाली हो, तो पुराने डिफ़ॉल्ट कार्ड्स दिखाएं
+              <div className="col-span-full text-center text-muted-foreground">
+                ऊपर सर्च बार में चैप्टर का नाम टाइप करें।
               </div>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* --- MIND MAP SECTION (पुराना लुक) --- */}
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-card">
-        <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-10">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold font-headline tracking-tighter">Mind Maps</h2>
-            <p className="text-muted-foreground md:text-xl">Improve retention with visual maps.</p>
-            <Button asChild><Link href="/mind-maps">View Mind Maps</Link></Button>
-          </div>
-          {PlaceHolderImages.find(p => p.id === 'mind-map-hero') && (
-            <Image
-              src={PlaceHolderImages.find(p => p.id === 'mind-map-hero')?.imageUrl!}
-              width="600" height="400" alt="Mind Map" className="mx-auto aspect-video rounded-xl object-cover shadow-lg"
-            />
-          )}
         </div>
       </section>
     </div>
