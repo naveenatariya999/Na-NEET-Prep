@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Pencil } from 'lucide-react';
+import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -48,7 +48,6 @@ import type { StudyMaterial } from '@/lib/types';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Helper to extract number from title
 const extractNumber = (title: string): number => {
   const match = title.match(/^(\d+)/);
   return match ? parseInt(match[1], 10) : 999;
@@ -59,7 +58,7 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
   const [title, setTitle] = React.useState('');
   const [subject, setSubject] = React.useState('');
   const [url, setUrl] = React.useState('');
-  const [order, setOrder] = React.useState<number | ''>('');
+  const [order, setOrder] = React.useState<string>('');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -126,7 +125,7 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="order" className="text-right">Sequence Order</Label>
-            <Input id="order" type="number" placeholder="e.g. 1, 2, 3" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="col-span-3" />
+            <Input id="order" type="number" placeholder="e.g. 1, 2, 3" value={order} onChange={(e) => setOrder(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="subject" className="text-right">Subject</Label>
@@ -156,12 +155,11 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
   );
 }
 
-// EDIT DIALOG COMPONENT
 function EditContentDialog({ item, contentType, open, onOpenChange }: { item: any, contentType: string, open: boolean, onOpenChange: (open: boolean) => void }) {
   const [title, setTitle] = React.useState(item?.title || '');
   const [subject, setSubject] = React.useState(item?.subject || '');
   const [url, setUrl] = React.useState(item?.url || '');
-  const [order, setOrder] = React.useState<number>(item?.order || extractNumber(item?.title || ''));
+  const [order, setOrder] = React.useState<string>(String(item?.order ?? extractNumber(item?.title || '')));
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -170,7 +168,7 @@ function EditContentDialog({ item, contentType, open, onOpenChange }: { item: an
       setTitle(item.title || '');
       setSubject(item.subject || '');
       setUrl(item.url || '');
-      setOrder(item.order !== undefined ? item.order : extractNumber(item.title || ''));
+      setOrder(String(item.order ?? extractNumber(item.title || '')));
     }
   }, [item]);
 
@@ -203,7 +201,7 @@ function EditContentDialog({ item, contentType, open, onOpenChange }: { item: an
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="edit-order" className="text-right">Sequence</Label>
-            <Input id="edit-order" type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="col-span-3" />
+            <Input id="edit-order" type="number" value={order} onChange={(e) => setOrder(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="edit-subject" className="text-right">Subject</Label>
@@ -248,7 +246,6 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
 
   const { data: rawContent, isLoading, error } = useCollection<StudyMaterial>(contentQuery);
 
-  // Sorting Logic (1, 2, 3... Sequence)
   const content = React.useMemo(() => {
     if (!rawContent) return [];
     return [...rawContent].sort((a: any, b: any) => {
@@ -391,7 +388,6 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
       {selectedEditItem && (
         <EditContentDialog
           item={selectedEditItem}
