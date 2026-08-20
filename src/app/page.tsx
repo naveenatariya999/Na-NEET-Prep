@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { db } from '@/lib/firebase'; 
+import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { Search, ArrowRight, BookOpen, ScrollText, PlaySquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,33 +14,32 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [allData, setAllData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const firestore = useFirestore();
 
-  // 1. डेटाबेस से आपके असली चैप्टर्स लोड करना
   useEffect(() => {
     async function fetchData() {
+      if (!firestore) return;
       setLoading(true);
       try {
-        const collections = ['notes', 'pyqs', 'videos'];
+        const collections = ['study_materials'];
         let results: any[] = [];
         for (const col of collections) {
-          const snap = await getDocs(collection(db, col));
-          snap.forEach(doc => results.push({ ...doc.data(), id: doc.id, type: col }));
+          const snap = await getDocs(collection(firestore, col));
+          snap.forEach(doc => results.push({ ...doc.data(), id: doc.id }));
         }
         setAllData(results);
       } catch (e) { console.error(e); }
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [firestore]);
 
-  // 2. सर्च फ़िल्टर
   const filtered = allData.filter(item => 
     (item.title || item.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* HERO SECTION */}
       <section className="w-full py-12 md:py-24 bg-card border-b">
         <div className="container px-4">
           <div className="grid lg:grid-cols-2 gap-10 items-center">
@@ -49,7 +48,6 @@ export default function Home() {
                 Your Expert Guide to Mastering the NEET Exam
               </h1>
               
-              {/* असली सर्च बार */}
               <div className="relative group max-w-md">
                 <input
                   type="text"
@@ -70,32 +68,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* RESULTS / STUDY MATERIAL */}
       <section className="w-full py-12">
         <div className="container px-4">
           <h2 className="text-3xl font-bold text-center mb-10 font-headline">Study Material</h2>
           
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
             {searchQuery === "" ? (
-              // डिफ़ॉल्ट लुक (जब सर्च खाली हो)
               <>
                 <FeatureCard title="Curated Notes" href="/notes" icon={BookOpen} img="feature-notes" />
                 <FeatureCard title="PYQ Access" href="/pyqs" icon={ScrollText} img="feature-pyqs" />
                 <FeatureCard title="Video Lectures" href="/videos" icon={PlaySquare} img="feature-videos" />
               </>
             ) : (
-              // सर्च रिजल्ट्स (जब आप कुछ टाइप करें)
               filtered.length > 0 ? (
                 filtered.map((item, i) => (
-                  <Link key={i} href={`/${item.type}`}>
+                  <Link key={i} href={`/${item.contentType || 'notes'}`}>
                     <Card className="hover:border-primary border-2 transition-all cursor-pointer h-full">
                       <CardContent className="p-6 flex items-center gap-4">
                         <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                          {item.type === 'videos' ? <PlaySquare /> : <BookOpen />}
+                          {item.contentType === 'videos' ? <PlaySquare /> : <BookOpen />}
                         </div>
                         <div>
                           <p className="font-bold text-lg">{item.title || item.name}</p>
-                          <span className="text-xs uppercase text-muted-foreground font-bold">{item.type}</span>
+                          <span className="text-xs uppercase text-muted-foreground font-bold">{item.contentType || 'material'}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -114,7 +109,6 @@ export default function Home() {
   );
 }
 
-// छोटा कार्ड कंपोनेंट
 function FeatureCard({ title, href, icon: Icon, img }: any) {
   const image = PlaceHolderImages.find(p => p.id === img);
   return (
