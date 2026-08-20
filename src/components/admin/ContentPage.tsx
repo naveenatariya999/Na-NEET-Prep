@@ -31,10 +31,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Pencil } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -46,14 +46,20 @@ import { useToast } from '@/hooks/use-toast';
 import { subjects } from '@/lib/data';
 import type { StudyMaterial } from '@/lib/types';
 
-// Capitalize first letter helper
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Helper to extract number from title
+const extractNumber = (title: string): number => {
+  const match = title.match(/^(\d+)/);
+  return match ? parseInt(match[1], 10) : 999;
+};
 
 function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyMaterial['contentType'], onContentAdded: () => void }) {
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState('');
   const [subject, setSubject] = React.useState('');
   const [url, setUrl] = React.useState('');
+  const [order, setOrder] = React.useState<number | ''>('');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -76,6 +82,7 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
       url,
       contentType,
       visible: true,
+      order: order !== '' ? Number(order) : extractNumber(title),
       adminId: user.uid,
       createdAt: serverTimestamp(),
     };
@@ -92,6 +99,7 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
     setTitle('');
     setSubject('');
     setUrl('');
+    setOrder('');
   };
 
   return (
@@ -113,50 +121,110 @@ function AddContentDialog({ contentType, onContentAdded }: { contentType: StudyM
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">
-              Title
-            </Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="col-span-3"
-            />
+            <Label htmlFor="title" className="text-right">Title</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subject" className="text-right">
-              Subject
-            </Label>
-             <Select onValueChange={setSubject} value={subject}>
-                <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                    {subjects.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                </SelectContent>
+            <Label htmlFor="order" className="text-right">Sequence Order</Label>
+            <Input id="order" type="number" placeholder="e.g. 1, 2, 3" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="subject" className="text-right">Subject</Label>
+            <Select onValueChange={setSubject} value={subject}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="url" className="text-right">
-              URL
-            </Label>
+            <Label htmlFor="url" className="text-right">URL</Label>
             <div className="col-span-3">
-              <Input
-                id="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="e.g., Google Drive/YouTube link"
-              />
-               <p className="text-xs text-muted-foreground mt-1">
-                  For Google Drive, share with "Anyone with the link".
-              </p>
+              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Google Drive / YouTube Link" />
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button onClick={handleSubmit}>Save {contentTypeName}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// EDIT DIALOG COMPONENT
+function EditContentDialog({ item, contentType, open, onOpenChange }: { item: any, contentType: string, open: boolean, onOpenChange: (open: boolean) => void }) {
+  const [title, setTitle] = React.useState(item?.title || '');
+  const [subject, setSubject] = React.useState(item?.subject || '');
+  const [url, setUrl] = React.useState(item?.url || '');
+  const [order, setOrder] = React.useState<number>(item?.order || extractNumber(item?.title || ''));
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (item) {
+      setTitle(item.title || '');
+      setSubject(item.subject || '');
+      setUrl(item.url || '');
+      setOrder(item.order !== undefined ? item.order : extractNumber(item.title || ''));
+    }
+  }, [item]);
+
+  const handleUpdate = () => {
+    const contentRef = doc(firestore, 'study_materials', item.id);
+    updateDocumentNonBlocking(contentRef, {
+      title,
+      subject,
+      url,
+      order: Number(order)
+    });
+
+    toast({
+      title: "Updated",
+      description: "Content details updated successfully.",
+    });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Details</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-title" className="text-right">Title</Label>
+            <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-order" className="text-right">Sequence</Label>
+            <Input id="edit-order" type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-subject" className="text-right">Subject</Label>
+            <Select onValueChange={setSubject} value={subject}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-url" className="text-right">URL</Label>
+            <Input id="edit-url" value={url} onChange={(e) => setUrl(e.target.value)} className="col-span-3" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={handleUpdate}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -171,12 +239,25 @@ interface ContentPageProps {
 export default function ContentPage({ contentType, pageTitle }: ContentPageProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [selectedEditItem, setSelectedEditItem] = React.useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   const contentQuery = useMemoFirebase(() => {
     return query(collection(firestore, 'study_materials'), where('contentType', '==', contentType));
   }, [firestore, contentType]);
 
-  const { data: content, isLoading, error } = useCollection<StudyMaterial>(contentQuery);
+  const { data: rawContent, isLoading, error } = useCollection<StudyMaterial>(contentQuery);
+
+  // Sorting Logic (1, 2, 3... Sequence)
+  const content = React.useMemo(() => {
+    if (!rawContent) return [];
+    return [...rawContent].sort((a: any, b: any) => {
+      const orderA = a.order !== undefined ? a.order : extractNumber(a.title || '');
+      const orderB = b.order !== undefined ? b.order : extractNumber(b.title || '');
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+  }, [rawContent]);
 
   const handleVisibilityChange = (contentId: string, newVisibility: boolean) => {
     const contentRef = doc(firestore, 'study_materials', contentId);
@@ -194,17 +275,17 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-       <div className="flex items-center">
-          <h1 className="text-lg font-semibold md:text-2xl font-headline">{pageTitle}</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <AddContentDialog contentType={contentType} onContentAdded={() => {}} />
-          </div>
+      <div className="flex items-center">
+        <h1 className="text-lg font-semibold md:text-2xl font-headline">{pageTitle}</h1>
+        <div className="ml-auto flex items-center gap-2">
+          <AddContentDialog contentType={contentType} onContentAdded={() => {}} />
         </div>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Content Management</CardTitle>
           <CardDescription>
-            Manage your {pageTitle}. You can toggle visibility or delete them.
+            Manage your {pageTitle}. You can edit, set sequence (1, 2, 3), toggle visibility, or delete them.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -213,31 +294,30 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Seq #</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead>Visibility</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading {pageTitle}...</TableCell></TableRow>}
-                {error && <TableRow><TableCell colSpan={5} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
-                {!isLoading && content?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No {pageTitle} found.</TableCell></TableRow>}
-                {content?.map((item) => (
+                {isLoading && <TableRow><TableCell colSpan={6} className="text-center">Loading {pageTitle}...</TableCell></TableRow>}
+                {error && <TableRow><TableCell colSpan={6} className="text-center text-destructive">Error: {error.message}</TableCell></TableRow>}
+                {!isLoading && content?.length === 0 && <TableRow><TableCell colSpan={6} className="text-center">No {pageTitle} found.</TableCell></TableRow>}
+                {content?.map((item: any) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.subject}</Badge>
+                    <TableCell className="font-bold text-primary">
+                      #{item.order !== undefined ? item.order : extractNumber(item.title)}
                     </TableCell>
+                    <TableCell className="font-medium">{item.title}</TableCell>
+                    <TableCell><Badge variant="outline">{item.subject}</Badge></TableCell>
                     <TableCell>{item.createdAt ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
                     <TableCell>
                       <Switch
                         checked={item.visible}
                         onCheckedChange={(checked) => handleVisibilityChange(item.id, checked)}
-                        aria-label={`Toggle ${item.title} visibility`}
                       />
                     </TableCell>
                     <TableCell>
@@ -245,18 +325,17 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onSelect={() => window.open(item.url, '_blank')}>View</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => { setSelectedEditItem(item); setIsEditDialogOpen(true); }}>
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                              onSelect={() => handleDelete(item.id)}
-                              className="text-destructive"
-                          >
-                              Delete
+                          <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive">
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -266,52 +345,61 @@ export default function ContentPage({ contentType, pageTitle }: ContentPageProps
               </TableBody>
             </Table>
           </div>
+
           {/* Mobile View */}
           <div className="grid gap-4 md:hidden">
-              {isLoading && <p className="text-center">Loading {pageTitle}...</p>}
-              {error && <p className="text-center text-destructive">Error: {error.message}</p>}
-              {!isLoading && content?.length === 0 && <p className="text-center">No {pageTitle} found.</p>}
-              {content?.map((item) => (
-                <Card key={item.id} className="w-full">
-                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
-                      <div>
-                        <CardTitle className="text-lg leading-tight">{item.title}</CardTitle>
-                        <p className="text-sm text-muted-foreground pt-1">{item.createdAt ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                           <DropdownMenuItem onSelect={() => window.open(item.url, '_blank')}>View</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                  </CardHeader>
-                  <CardContent>
-                      <Badge variant="outline">{item.subject}</Badge>
-                  </CardContent>
-                  <CardFooter className="flex items-center justify-between">
-                      <Label htmlFor={`visible-${item.id}`} className="text-sm text-muted-foreground">Visible</Label>
-                      <Switch
-                        id={`visible-${item.id}`}
-                        checked={item.visible}
-                        onCheckedChange={(checked) => handleVisibilityChange(item.id, checked)}
-                        aria-label={`Toggle ${item.title} visibility`}
-                      />
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+            {isLoading && <p className="text-center">Loading {pageTitle}...</p>}
+            {error && <p className="text-center text-destructive">Error: {error.message}</p>}
+            {!isLoading && content?.length === 0 && <p className="text-center">No {pageTitle} found.</p>}
+            {content?.map((item: any) => (
+              <Card key={item.id} className="w-full">
+                <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                  <div>
+                    <span className="text-xs font-bold text-primary">#{item.order !== undefined ? item.order : extractNumber(item.title)}</span>
+                    <CardTitle className="text-lg leading-tight">{item.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground pt-1">{item.createdAt ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => window.open(item.url, '_blank')}>View</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => { setSelectedEditItem(item); setIsEditDialogOpen(true); }}>Edit</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive">Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardHeader>
+                <CardContent>
+                  <Badge variant="outline">{item.subject}</Badge>
+                </CardContent>
+                <CardFooter className="flex items-center justify-between">
+                  <Label htmlFor={`visible-${item.id}`} className="text-sm text-muted-foreground">Visible</Label>
+                  <Switch
+                    id={`visible-${item.id}`}
+                    checked={item.visible}
+                    onCheckedChange={(checked) => handleVisibilityChange(item.id, checked)}
+                  />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      {selectedEditItem && (
+        <EditContentDialog
+          item={selectedEditItem}
+          contentType={contentType}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+      )}
     </main>
   );
 }
