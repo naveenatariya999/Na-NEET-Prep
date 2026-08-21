@@ -17,8 +17,11 @@ const extractNumber = (title: string): number => {
   return match ? parseInt(match[1], 10) : 999;
 };
 
-function getGoogleDriveEmbedUrl(url: string): string {
+// YouTube aur Google Drive dono ke embeds handle karne ke liye smart function
+function getEmbedUrl(url: string): string {
   if (!url) return '';
+
+  // Google Drive Links
   const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileMatch && fileMatch[1]) {
     return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
@@ -27,6 +30,13 @@ function getGoogleDriveEmbedUrl(url: string): string {
   if (docMatch && docMatch[1]) {
     return `https://docs.google.com/document/d/${docMatch[1]}/preview`;
   }
+
+  // YouTube Normal Links (watch?v=ID)
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
   return url;
 }
 
@@ -83,7 +93,7 @@ export default function PublicContentList({ contentType, pageTitle }: PublicCont
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {!isLoading &&
           sortedMaterials.map((item) => {
-            const embedUrl = getGoogleDriveEmbedUrl(item.url);
+            const embedUrl = getEmbedUrl(item.url);
             return (
               <Card key={item.id} className="animated-card">
                 <CardHeader>
@@ -119,7 +129,12 @@ export default function PublicContentList({ contentType, pageTitle }: PublicCont
           </DialogHeader>
           {viewingUrl && (
             <div className="flex-grow w-full h-full -mx-2 -mb-2 sm:mx-0 sm:mb-0">
-              <iframe src={viewingUrl} className="w-full h-full border-0 rounded-b-lg" allow="autoplay" />
+              <iframe
+                src={viewingUrl}
+                className="w-full h-full border-0 rounded-b-lg"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           )}
         </DialogContent>
