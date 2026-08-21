@@ -1,4 +1,4 @@
-'use client';
+'use 'use client';
 
 import React from 'react';
 import { useParams } from 'next/navigation';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ArrowRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StudyMaterial } from '@/lib/types';
 import { subjects } from '@/lib/data';
 
@@ -16,6 +17,19 @@ const extractNumber = (title: string): number => {
   return match ? parseInt(match[1], 10) : 999;
 };
 
+function getGoogleDriveEmbedUrl(url: string): string {
+  if (!url) return '';
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch && fileMatch[1]) {
+    return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+  }
+  const docMatch = url.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
+  if (docMatch && docMatch[1]) {
+    return `https://docs.google.com/document/d/${docMatch[1]}/preview`;
+  }
+  return url;
+}
+
 interface PublicContentListProps {
   contentType: StudyMaterial['contentType'];
   pageTitle: string;
@@ -23,14 +37,13 @@ interface PublicContentListProps {
 
 export default function PublicContentList({ contentType, pageTitle }: PublicContentListProps) {
   const params = useParams();
-  // Donों URL parameters support karein (subject ho ya subjectId)
   const subjectParam = (params.subjectId || params.subject) as string;
   const firestore = useFirestore();
+  const [viewingUrl, setViewingUrl] = React.useState<string | null>(null);
 
   const currentSubject = subjects.find((s) => s.id === subjectParam);
 
   const materialsQuery = useMemoFirebase(() => {
-    // Agar subject query mein ho to filter karein, warna general type filter
     if (subjectParam) {
       return query(
         collection(firestore, 'study_materials'),
@@ -69,27 +82,28 @@ export default function PublicContentList({ contentType, pageTitle }: PublicCont
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {!isLoading &&
-          sortedMaterials.map((item) => (
-            <Card key={item.id} className="animated-card">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <FileText className="w-8 h-8 text-primary" />
-                  <CardTitle>{item.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="secondary" className="mb-4">
-                  {item.subject}
-                </Badge>
-                <p className="text-muted-foreground mb-4">Click to view content.</p>
-                <Button asChild>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    View <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          sortedMaterials.map((item) => {
+            const embedUrl = getGoogleDriveEmbedUrl(item.url);
+            return (
+              <Card key={item.id} className="animated-card">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <FileText className="w-8 h-8 text-primary" />
+                    <CardTitle>{item.title}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Badge variant="secondary" className="mb-4">
+                    {item.subject}
+                  </Badge>
+                  <p className="text-muted-foreground mb-4">Click to view material inside app.</p>
+                  <Button onClick={() => setViewingUrl(embedUrl)}>
+                    View Material <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
 
         {!isLoading && sortedMaterials.length === 0 && (
           <div className="col-span-full text-center text-muted-foreground">
@@ -97,6 +111,20 @@ export default function PublicContentList({ contentType, pageTitle }: PublicCont
           </div>
         )}
       </div>
+
+      {/* App ke andar hi PDF/Video kholne ke liye Popup Modal */}
+      <Dialog open={!!viewingUrl} onOpenChange={(isOpen) => !isOpen && setViewingUrl(null)}>
+        <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-2 sm:p-6">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Viewer</DialogTitle>
+          </DialogHeader>
+          {viewingUrl && (
+            <div className="flex-grow w-full h-full -mx-2 -mb-2 sm:mx-0 sm:mb-0">
+              <iframe src={viewingUrl} className="w-full h-full border-0 rounded-b-lg" allow="autoplay" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
