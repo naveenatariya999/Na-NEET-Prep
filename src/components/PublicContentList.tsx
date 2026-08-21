@@ -1,4 +1,4 @@
-'use 'use client';
+'use client';
 
 import React from 'react';
 import { useParams } from 'next/navigation';
@@ -112,7 +112,6 @@ export default function PublicContentList({ contentType, pageTitle }: PublicCont
         )}
       </div>
 
-      {/* App ke andar hi PDF/Video kholne ke liye Popup Modal */}
       <Dialog open={!!viewingUrl} onOpenChange={(isOpen) => !isOpen && setViewingUrl(null)}>
         <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-2 sm:p-6">
           <DialogHeader className="flex-shrink-0">
