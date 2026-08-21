@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ArrowRight } from 'lucide-react';
-import type { StudyMaterial } from '@/lib/types';
+import { StudyMaterial } from '@/lib/types';
+import { subjects } from '@/lib/data';
 
 const extractNumber = (title: string): number => {
   const match = title.match(/^(\d+)/);
@@ -22,75 +23,80 @@ interface PublicContentListProps {
 
 export default function PublicContentList({ contentType, pageTitle }: PublicContentListProps) {
   const params = useParams();
-  const subject = params?.subject as string;
+  // Donों URL parameters support karein (subject ho ya subjectId)
+  const subjectParam = (params.subjectId || params.subject) as string;
   const firestore = useFirestore();
 
-  const contentQuery = useMemoFirebase(() => {
-    if (!subject) return null;
+  const currentSubject = subjects.find((s) => s.id === subjectParam);
+
+  const materialsQuery = useMemoFirebase(() => {
+    // Agar subject query mein ho to filter karein, warna general type filter
+    if (subjectParam) {
+      return query(
+        collection(firestore, 'study_materials'),
+        where('contentType', '==', contentType),
+        where('subject', '==', subjectParam),
+        where('visible', '==', true)
+      );
+    }
     return query(
       collection(firestore, 'study_materials'),
       where('contentType', '==', contentType),
-      where('subject', '==', subject),
       where('visible', '==', true)
     );
-  }, [firestore, subject, contentType]);
+  }, [firestore, contentType, subjectParam]);
 
-  const { data: rawContent, isLoading, error } = useCollection<StudyMaterial>(contentQuery);
+  const { data: materials, isLoading, error } = useCollection<StudyMaterial>(materialsQuery);
 
-  const sortedContent = React.useMemo(() => {
-    if (!rawContent) return [];
-    return [...rawContent].sort((a: any, b: any) => {
-      const orderA = a.order !== undefined ? a.order : extractNumber(a.title || '');
-      const orderB = b.order !== undefined ? b.order : extractNumber(b.title || '');
-      if (orderA !== orderB) return orderA - orderB;
-      return (a.title || '').localeCompare(b.title || '');
-    });
-  }, [rawContent]);
-
-  const subjectTitle = subject ? subject.charAt(0).toUpperCase() + subject.slice(1) : '';
+  const sortedMaterials = React.useMemo(() => {
+    if (!materials) return [];
+    return [...materials].sort((a, b) => extractNumber(a.title) - extractNumber(b.title));
+  }, [materials]);
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold tracking-tight capitalize font-headline">
-          {subjectTitle} {pageTitle}
+    <div className="container mx-auto py-12 px-4 md:px-6">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold tracking-tight font-headline sm:text-5xl">
+          {currentSubject ? `${currentSubject.name} ${pageTitle}` : pageTitle}
         </h1>
-        <p className="text-muted-foreground mt-2">Browse {pageTitle} for {subjectTitle}.</p>
+        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+          Browse {pageTitle} {currentSubject ? `for ${currentSubject.name}` : ''}.
+        </p>
       </div>
 
-      {isLoading && <p className="text-center">Loading...</p>}
-      {error && <p className="text-center text-destructive">Error: {error.message}</p>}
-      {!isLoading && sortedContent.length === 0 && (
-        <p className="text-center text-muted-foreground">No content available for this subject yet.</p>
-      )}
+      {isLoading && <p className="text-center">Loading materials...</p>}
+      {error && <p className="text-center text-destructive">Could not load content.</p>}
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {sortedContent.map((item: any) => (
-          <Card key={item.id} className="flex flex-col justify-between hover:shadow-lg transition-all border-2">
-            <CardHeader className="pb-3">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-primary/10 text-primary rounded-lg mt-1">
-                  <FileText className="h-5 w-5" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {!isLoading &&
+          sortedMaterials.map((item) => (
+            <Card key={item.id} className="animated-card">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <FileText className="w-8 h-8 text-primary" />
+                  <CardTitle>{item.title}</CardTitle>
                 </div>
-                <div className="space-y-1">
-                  <Badge variant="outline" className="capitalize text-xs mb-1">
-                    {item.subject}
-                  </Badge>
-                  <CardTitle className="text-lg leading-snug">{item.title}</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground mb-4">Click to view material.</p>
-              <Button asChild className="w-full gap-2">
-                <a href={item.url} target="_blank" rel="noopener noreferrer">
-                  Open <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <Badge variant="secondary" className="mb-4">
+                  {item.subject}
+                </Badge>
+                <p className="text-muted-foreground mb-4">Click to view content.</p>
+                <Button asChild>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    View <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+
+        {!isLoading && sortedMaterials.length === 0 && (
+          <div className="col-span-full text-center text-muted-foreground">
+            No content available for this section yet.
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
